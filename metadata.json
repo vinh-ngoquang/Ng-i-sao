@@ -1,0 +1,6 @@
+{
+  "name": "Dashboard Ngôi Sao - Thống Kê Pageviews & Users",
+  "description": "Bảng điều khiển theo dõi và phân tích các chỉ số Pageviews và Users cho site Ngôi Sao, đồng bộ trực tiếp từ Google Sheets và lưu trữ vào file MD.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
