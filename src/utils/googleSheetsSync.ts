@@ -40,24 +40,31 @@ const KEY_MAP: (keyof NgoiSaoRecord)[] = [
 ];
 
 export function parseTsvToRecords(tsvText: string): { records: NgoiSaoRecord[]; rawLines: string[]; headers: string[] } {
-  const lines = tsvText.split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return { records: [], rawLines: [], headers: [] };
+  const lines = tsvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return { records: [], rawLines: [], headers: [] };
 
-  const headers = lines[0].split('\t');
+  const firstLine = lines[0];
+  const sep = firstLine.includes('\t') ? '\t' : (firstLine.includes(',') ? ',' : ';');
+  
+  // Check if first line is a header or already a data row (e.g., starts with 2026-)
+  const isHeader = !/^\d{4}-\d{2}-\d{2}/.test(firstLine);
+  const startIndex = isHeader ? 1 : 0;
+  const headers = isHeader ? firstLine.split(sep).map(h => h.trim().replace(/^["']|["']$/g, '')) : [];
   const records: NgoiSaoRecord[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split('\t');
-    if (parts.length < 5) continue;
+  for (let i = startIndex; i < lines.length; i++) {
+    const parts = lines[i].split(sep).map(p => p.trim().replace(/^["']|["']$/g, ''));
+    if (parts.length < 3) continue;
     const obj: any = {};
     KEY_MAP.forEach((k, idx) => {
       if (idx === 0 || idx === 1) {
-        obj[k] = parts[idx] ? parts[idx].trim() : '';
+        obj[k] = parts[idx] ? parts[idx].trim() : (idx === 1 ? 'Ngôi sao' : '');
       } else {
-        obj[k] = parts[idx] ? Number(parts[idx].trim()) || 0 : 0;
+        const raw = parts[idx] ? parts[idx].replace(/,/g, '') : '0';
+        obj[k] = Number(raw) || 0;
       }
     });
-    if (obj.date_day) {
+    if (obj.date_day && /^\d{4}-\d{2}-\d{2}/.test(obj.date_day)) {
       records.push(obj as NgoiSaoRecord);
     }
   }
@@ -136,11 +143,11 @@ export function generateMarkdownContent(records: NgoiSaoRecord[], lastSyncIso?: 
 }
 
 export async function fetchLiveGoogleSheetsData(): Promise<{ records: NgoiSaoRecord[]; lastSync: string }> {
-  const res = await fetch(GOOGLE_SHEETS_TSV_URL, {
-    headers: {
-      'Cache-Control': 'no-cache',
-    },
-  });
+  // Do not send custom headers like 'Cache-Control' in the browser to avoid CORS preflight failures on docs.google.com.
+  // Instead, use query param _t for cache-busting:
+  const separator = GOOGLE_SHEETS_TSV_URL.includes('?') ? '&' : '?';
+  const url = `${GOOGLE_SHEETS_TSV_URL}${separator}_t=${Date.now()}`;
+  const res = await fetch(url);
 
   if (!res.ok) {
     throw new Error(`Google Sheets fetch failed with status: ${res.status}`);

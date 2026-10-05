@@ -27,24 +27,22 @@ const KEY_MAP = [
   'u_mobile', 'u_pc', 'u_app', 'u_tablet'
 ];
 
-function fetchWithRedirect(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        https.get(res.headers.location, (res2) => {
-          let data = '';
-          res2.on('data', chunk => data += chunk);
-          res2.on('end', () => resolve(data));
-          res2.on('error', reject);
-        }).on('error', reject);
-      } else {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
-        res.on('error', reject);
-      }
-    }).on('error', reject);
+async function fetchTsvContent(url: string): Promise<string> {
+  const separator = url.includes('?') ? '&' : '?';
+  const fetchUrl = `${url}${separator}_t=${Date.now()}`;
+  const response = await fetch(fetchUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
   });
+
+  if (!response.ok) {
+    throw new Error(`Google Sheets fetch failed with status: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.text();
 }
 
 function parseTSV(tsvContent: string): { records: Record<string, any>[]; headers: string[]; lines: string[] } {
@@ -167,7 +165,7 @@ async function syncDataFromGoogleSheets() {
   if (isSyncing) return cachedRecords;
   isSyncing = true;
   try {
-    const tsvContent = await fetchWithRedirect(GOOGLE_SHEETS_TSV_URL);
+    const tsvContent = await fetchTsvContent(GOOGLE_SHEETS_TSV_URL);
     const parsed = parseTSV(tsvContent);
     if (parsed.records && parsed.records.length > 0) {
       cachedRecords = parsed.records;
@@ -204,10 +202,12 @@ app.get('/api/data', async (req, res) => {
   if (shouldRefresh || cachedRecords.length === 0) {
     await syncDataFromGoogleSheets();
   }
+  const latestDate = cachedRecords.length > 0 ? cachedRecords[cachedRecords.length - 1].date_day : null;
   res.json({
     success: true,
     lastSyncTime,
     count: cachedRecords.length,
+    latestDate,
     sourceUrl: GOOGLE_SHEETS_TSV_URL,
     records: cachedRecords
   });
@@ -217,10 +217,14 @@ app.get('/api/data', async (req, res) => {
 app.post('/api/sync', async (req, res) => {
   try {
     const data = await syncDataFromGoogleSheets();
+    const latestDate = data.length > 0 ? data[data.length - 1].date_day : null;
     res.json({
       success: true,
       lastSyncTime,
       count: data.length,
+      latestDate,
+      records: data,
+      sourceUrl: GOOGLE_SHEETS_TSV_URL,
       message: 'Đồng bộ dữ liệu thành công và đã cập nhật DATA_NGOISAO.md'
     });
   } catch (err: any) {

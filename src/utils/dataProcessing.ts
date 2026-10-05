@@ -38,6 +38,17 @@ export function calculateMedian(nums: number[]): number {
   return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
+export function calculateMedianFloat(nums: number[], precision: number = 2): number {
+  if (!nums || nums.length === 0) return 0;
+  const sorted = [...nums].filter(n => typeof n === 'number' && !isNaN(n) && isFinite(n)).sort((a, b) => a - b);
+  if (sorted.length === 0) return 0;
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 !== 0) {
+    return Number(sorted[mid].toFixed(precision));
+  }
+  return Number(((sorted[mid - 1] + sorted[mid]) / 2).toFixed(precision));
+}
+
 export function computeDayOfWeekMedians(records: NgoiSaoRecord[]): DayOfWeekMedian[] {
   if (!records || records.length === 0) {
     return DAY_OF_WEEK_NAMES.map((m, idx) => ({
@@ -68,17 +79,46 @@ export function computeDayOfWeekMedians(records: NgoiSaoRecord[]): DayOfWeekMedi
 
     const medianPV = calculateMedian(pvList);
     const medianUser = calculateMedian(uList);
-    const medianRatio = medianUser > 0 ? Number((medianPV / medianUser).toFixed(2)) : 0;
+    
+    // Calculate median PV/U ratio for total site on this day of week
+    const totalRatioList = bucket
+      .map(r => {
+        const p = Number(r.pageviews) || 0;
+        const u = Number(r.user) || 0;
+        return u > 0 ? p / u : 0;
+      })
+      .filter(v => v > 0);
+    const medianRatio = calculateMedianFloat(totalRatioList) || (medianUser > 0 ? Number((medianPV / medianUser).toFixed(2)) : 0);
 
     const mediansByMetric: Record<string, number> = {
       pageviews: medianPV,
       user: medianUser,
+      ratio: medianRatio,
+      total_ratio: medianRatio,
+      pageviews_ratio: medianRatio,
     };
 
-    // Calculate medians for all 16 pairs
+    // Calculate medians for all 16 pairs (PV, User, and PV/U ratio)
     METRIC_PAIRS.forEach(p => {
-      mediansByMetric[p.pvKey] = calculateMedian(bucket.map(r => Number(r[p.pvKey]) || 0));
-      mediansByMetric[p.uKey] = calculateMedian(bucket.map(r => Number(r[p.uKey]) || 0));
+      const pairPVs = bucket.map(r => Number(r[p.pvKey]) || 0);
+      const pairUs = bucket.map(r => Number(r[p.uKey]) || 0);
+      const pairPVMed = calculateMedian(pairPVs);
+      const pairUMed = calculateMedian(pairUs);
+
+      mediansByMetric[p.pvKey] = pairPVMed;
+      mediansByMetric[p.uKey] = pairUMed;
+
+      const pairRatios = bucket
+        .map(r => {
+          const pv = Number(r[p.pvKey]) || 0;
+          const u = Number(r[p.uKey]) || 0;
+          return u > 0 ? pv / u : 0;
+        })
+        .filter(v => v > 0);
+
+      const pairRatioMed = calculateMedianFloat(pairRatios) || (pairUMed > 0 ? Number((pairPVMed / pairUMed).toFixed(2)) : 0);
+      mediansByMetric[`${p.id}_ratio`] = pairRatioMed;
+      mediansByMetric[`${p.pvKey}_ratio`] = pairRatioMed;
     });
 
     return {

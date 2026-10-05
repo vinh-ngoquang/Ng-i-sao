@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Table, ChevronLeft, ChevronRight, ArrowUpDown, Download, Search, Check, Calendar, TrendingUp, TrendingDown, Filter, SlidersHorizontal, Eye, AlertTriangle, Flame, ShieldAlert, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
+import { Table, ChevronLeft, ChevronRight, ArrowUpDown, Download, Search, Check, Calendar, TrendingUp, TrendingDown, Filter, SlidersHorizontal, Eye, AlertTriangle, Flame, ShieldAlert, Sparkles } from 'lucide-react';
 import { NgoiSaoRecord } from '../types';
 import { METRIC_PAIRS } from '../data/metricPairs';
 import { formatNumber, formatDateVN, formatRatio } from '../utils/formatters';
@@ -98,7 +98,7 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
 }
 
 export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, searchQuery }) => {
-  const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only'>('paired');
+  const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only' | 'ratio_only'>('paired');
   const [displayMode, setDisplayMode] = useState<'both' | 'value_only' | 'diff_only'>('both');
   const [sortField, setSortField] = useState<string>('date_day');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -108,14 +108,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
   const [showMedianBenchmarks, setShowMedianBenchmarks] = useState<boolean>(true);
   const [benchmarkMetricId, setBenchmarkMetricId] = useState<string>('total');
 
-  // Trạng thái phóng to toàn màn hình
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
-
   // Mức thu phóng cỡ chữ & ô dữ liệu ('normal': 100%, 'large': 115%, 'xl': 130%)
   const [zoomLevel, setZoomLevel] = useState<'normal' | 'large' | 'xl'>('normal');
-
-  // Trạng thái mở rộng mức chuẩn trung vị khi ở chế độ phóng to
-  const [isMedianExpandedInModal, setIsMedianExpandedInModal] = useState<boolean>(false);
 
   // Lớp CSS theo độ thu phóng
   const zoomClasses = useMemo(() => {
@@ -159,40 +153,6 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
         };
     }
   }, [zoomLevel]);
-
-  // Bật/tắt phóng to box - tự động chuyển sang cỡ chữ Lớn để giãn rộng ô và số liệu
-  const handleToggleExpand = () => {
-    setIsExpanded(prev => {
-      const next = !prev;
-      if (next && zoomLevel === 'normal') {
-        setZoomLevel('large');
-      }
-      return next;
-    });
-  };
-
-  // Lắng nghe phím Escape để thoát chế độ phóng to
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isExpanded) {
-        setIsExpanded(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded]);
-
-  // Khóa cuộn trang khi đang phóng to
-  useEffect(() => {
-    if (isExpanded) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isExpanded]);
 
   // Ref container để cuộn chuột & cuộn ngang
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -238,16 +198,24 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
     const uDiff = medianData.medianUser > 0 ? Math.abs((Number(r.user) - medianData.medianUser) / medianData.medianUser) * 100 : 0;
     if (pvDiff >= anomalyThreshold || uDiff >= anomalyThreshold) return true;
 
-    // Check all 16 metric pairs
+    // Check all 16 metric pairs (PV, User, and PV/U ratio)
     for (const p of METRIC_PAIRS) {
       const pMed = medianData.mediansByMetric[p.pvKey] || 0;
       const uMed = medianData.mediansByMetric[p.uKey] || 0;
+      const rMed = medianData.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pMed / uMed : 0);
       if (pMed > 0) {
         const diff = Math.abs((Number(r[p.pvKey]) - pMed) / pMed) * 100;
         if (diff >= anomalyThreshold) return true;
       }
       if (uMed > 0) {
         const diff = Math.abs((Number(r[p.uKey]) - uMed) / uMed) * 100;
+        if (diff >= anomalyThreshold) return true;
+      }
+      if (rMed > 0) {
+        const pv = Number(r[p.pvKey]) || 0;
+        const u = Number(r[p.uKey]) || 0;
+        const ratio = u > 0 ? pv / u : 0;
+        const diff = Math.abs((ratio - rMed) / rMed) * 100;
         if (diff >= anomalyThreshold) return true;
       }
     }
@@ -318,6 +286,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
         const u = Number(r[p.uKey]) || 0;
         const pvMed = medianData.mediansByMetric[p.pvKey] || 0;
         const uMed = medianData.mediansByMetric[p.uKey] || 0;
+        const rMed = medianData.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
 
         if (pvMed > 0) {
           const diff = ((pv - pvMed) / pvMed) * 100;
@@ -326,6 +295,12 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
         }
         if (uMed > 0) {
           const diff = ((u - uMed) / uMed) * 100;
+          if (diff >= anomalyThreshold) { spikeCount++; dayHadAnomaly = true; }
+          else if (diff <= -anomalyThreshold) { dropCount++; dayHadAnomaly = true; }
+        }
+        if (rMed > 0) {
+          const ratio = u > 0 ? pv / u : 0;
+          const diff = ((ratio - rMed) / rMed) * 100;
           if (diff >= anomalyThreshold) { spikeCount++; dayHadAnomaly = true; }
           else if (diff <= -anomalyThreshold) { dropCount++; dayHadAnomaly = true; }
         }
@@ -357,6 +332,21 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
         return sortOrder === 'asc' ? diffA - diffB : diffB - diffA;
       }
 
+      // Sắp xếp theo tỷ lệ PV/U
+      if (sortField.endsWith('_ratio')) {
+        const pairId = sortField.replace('_ratio', '');
+        const pair = METRIC_PAIRS.find(p => p.id === pairId);
+        if (pair) {
+          const uA = Number(a[pair.uKey]) || 0;
+          const pvA = Number(a[pair.pvKey]) || 0;
+          const ratioA = uA > 0 ? pvA / uA : 0;
+          const uB = Number(b[pair.uKey]) || 0;
+          const pvB = Number(b[pair.pvKey]) || 0;
+          const ratioB = uB > 0 ? pvB / uB : 0;
+          return sortOrder === 'asc' ? ratioA - ratioB : ratioB - ratioA;
+        }
+      }
+
       const valA = a[sortField];
       const valB = b[sortField];
       if (typeof valA === 'string') {
@@ -381,7 +371,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
     medianVal: number,
     dowName: string,
     metricHeader: string,
-    isUser: boolean = false
+    isUser: boolean = false,
+    isRatio: boolean = false
   ) => {
     const diffPct = medianVal > 0 ? ((val - medianVal) / medianVal) * 100 : 0;
     const isUp = diffPct >= 0;
@@ -393,13 +384,16 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
     const isDimmed = focusAnomaliesOnly && !anomaly.isAnomaly;
     const dimClass = isDimmed ? 'opacity-30 hover:opacity-100 transition-opacity' : '';
 
-    const tooltip = `[${anomaly.label}] ${metricHeader}: ${formatNumber(val)}\nTrung vị ${dowName}: ${formatNumber(medianVal)}\nĐộ lệch vs thứ: ${diffFormatted}`;
+    const formattedVal = isRatio ? formatRatio(val) : formatNumber(val);
+    const formattedMedian = isRatio ? formatRatio(medianVal) : formatNumber(medianVal);
+
+    const tooltip = `[${anomaly.label}] ${metricHeader}: ${formattedVal}\nTrung vị ${dowName}: ${formattedMedian}\nĐộ lệch vs thứ: ${diffFormatted}`;
 
     if (displayMode === 'value_only') {
       return (
-        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
           <span className={`font-mono ${zoomClasses.valFont} tabular-nums ${anomaly.textClass}`}>
-            {formatNumber(val)}
+            {formattedVal}
           </span>
         </td>
       );
@@ -407,7 +401,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
 
     if (displayMode === 'diff_only') {
       return (
-        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
           <span
             className={`inline-block font-mono ${zoomClasses.badgeFont} tabular-nums rounded text-center ${anomaly.badgeClass}`}
           >
@@ -419,10 +413,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
 
     // Both (default): formatted value on top, high-visibility color badge below (no icons, pure color gradient)
     return (
-      <td className={`${zoomClasses.cellPadding} text-right cursor-help transition-colors ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+      <td className={`${zoomClasses.cellPadding} text-right cursor-help transition-colors ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
         <div className="flex flex-col items-end justify-center leading-tight">
           <span className={`font-mono ${zoomClasses.valFont} tabular-nums ${anomaly.textClass}`}>
-            {formatNumber(val)}
+            {formattedVal}
           </span>
           <span
             className={`inline-block font-mono tabular-nums leading-tight mt-0.5 rounded text-center ${zoomClasses.badgeFont} ${anomaly.badgeClass}`}
@@ -448,7 +442,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
       headerCols.push(`${p.uHeader}_TV_Thu`);
       headerCols.push(`${p.uHeader}_Lech_%`);
       headerCols.push(`${p.uHeader}_Danh_Gia`);
-      headerCols.push(`${p.shortLabel}_PV_U_Ratio`);
+      headerCols.push(`${p.shortLabel}_PV_U`);
+      headerCols.push(`${p.shortLabel}_PV_U_TV_Thu`);
+      headerCols.push(`${p.shortLabel}_PV_U_Lech_%`);
+      headerCols.push(`${p.shortLabel}_PV_U_Danh_Gia`);
     });
 
     const rows = sortedRecords.map(r => {
@@ -462,19 +459,25 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
         const u = Number(r[p.uKey]) || 0;
         const pvMed = medianData?.mediansByMetric[p.pvKey] || 0;
         const uMed = medianData?.mediansByMetric[p.uKey] || 0;
+        const rMed = medianData?.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+
         const pvDiffVal = pvMed > 0 ? ((pv - pvMed) / pvMed) * 100 : 0;
         const uDiffVal = uMed > 0 ? ((u - uMed) / uMed) * 100 : 0;
+        const ratio = u > 0 ? pv / u : 0;
+        const ratioDiffVal = rMed > 0 ? ((ratio - rMed) / rMed) * 100 : 0;
+
         const pvAnomaly = classifyAnomaly(pvDiffVal, anomalyThreshold);
         const uAnomaly = classifyAnomaly(uDiffVal, anomalyThreshold);
+        const ratioAnomaly = classifyAnomaly(ratioDiffVal, anomalyThreshold);
 
         const pvDiffStr = `${pvDiffVal >= 0 ? '+' : ''}${pvDiffVal.toFixed(1)}%`;
         const uDiffStr = `${uDiffVal >= 0 ? '+' : ''}${uDiffVal.toFixed(1)}%`;
-        const ratio = u > 0 ? (pv / u).toFixed(2) : '0';
+        const ratioDiffStr = `${ratioDiffVal >= 0 ? '+' : ''}${ratioDiffVal.toFixed(1)}%`;
 
         rowCols.push(
           String(pv), String(pvMed), pvDiffStr, pvAnomaly.label,
           String(u), String(uMed), uDiffStr, uAnomaly.label,
-          ratio
+          ratio.toFixed(2), rMed.toFixed(2), ratioDiffStr, ratioAnomaly.label
         );
       });
 
@@ -494,44 +497,23 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
   };
 
   return (
-    <>
-      {/* Lớp nền mờ khi phóng to */}
-      {isExpanded && (
-        <div
-          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 transition-opacity cursor-pointer"
-          onClick={() => setIsExpanded(false)}
-          title="Nhấn vào nền để thu nhỏ lại"
-        />
-      )}
-
-      <div
-        className={
-          isExpanded
-            ? "fixed inset-2 sm:inset-4 md:inset-6 z-50 bg-white rounded-2xl shadow-2xl border-2 border-slate-300 p-4 sm:p-5 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
-            : "bg-white border border-slate-200 rounded-xl p-5 shadow-xs mb-8"
-        }
-        id="data-table-section"
-      >
-        
-        {/* 1. Header & Controls */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-slate-100">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <Table className="w-4.5 h-4.5 text-rose-600" />
-              <span>Bảng Dữ Liệu Chi Tiết Theo Ngày</span>
-            </h2>
-            {isExpanded ? (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow-2xs flex items-center gap-1">
-                <Maximize2 className="w-3 h-3" />
-                <span>Đang phóng to box (Toàn màn hình)</span>
-              </span>
-            ) : (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs flex items-center gap-1">
-                <Flame className="w-3 h-3 text-amber-300" />
-                <span>Nhận diện điểm tăng/giảm bất thường</span>
-              </span>
-            )}
-          </div>
+    <div
+      className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs mb-8"
+      id="data-table-section"
+    >
+      
+      {/* 1. Header & Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <Table className="w-4.5 h-4.5 text-rose-600" />
+            <span>Bảng Dữ Liệu Chi Tiết Theo Ngày</span>
+          </h2>
+          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs flex items-center gap-1">
+            <Flame className="w-3 h-3 text-amber-300" />
+            <span>Nhận diện điểm tăng/giảm bất thường</span>
+          </span>
+        </div>
 
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2.5">
@@ -603,7 +585,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
               </button>
             </div>
 
-            {/* View Mode (Paired, PV only, User only) */}
+            {/* View Mode (Paired, PV only, User only, Ratio only) */}
             <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs">
               <button
                 onClick={() => { setViewMode('paired'); setCurrentPage(1); }}
@@ -629,6 +611,14 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
               >
                 Chỉ User
               </button>
+              <button
+                onClick={() => { setViewMode('ratio_only'); setCurrentPage(1); }}
+                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
+                  viewMode === 'ratio_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Chỉ PV/U
+              </button>
             </div>
 
             <button
@@ -638,29 +628,6 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
             >
               <Download className="w-3.5 h-3.5" />
               <span>Tải CSV</span>
-            </button>
-
-            {/* Phóng to / Thu nhỏ Button */}
-            <button
-              onClick={handleToggleExpand}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer transition-all border shadow-xs ${
-                isExpanded
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 shadow-sm'
-                  : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-              }`}
-              title={isExpanded ? 'Thu nhỏ lại (hoặc nhấn phím Esc)' : 'Phóng to riêng box bảng dữ liệu để xem rộng rãi, đầy đủ'}
-            >
-              {isExpanded ? (
-                <>
-                  <Minimize2 className="w-3.5 h-3.5 text-white" />
-                  <span>Thu nhỏ (Esc)</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Phóng to</span>
-                </>
-              )}
             </button>
           </div>
         </div>
@@ -731,69 +698,44 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
 
       {/* 3. Benchmark Baseline: Day-of-Week Medians Strip for Selected Metric */}
       {showMedianBenchmarks && (
-        <>
-          {/* Khi phóng to box: mặc định thu gọn mức trung vị chuẩn để dành toàn bộ chiều dọc cho bảng */}
-          {isExpanded && !isMedianExpandedInModal && (
-            <div className="mb-2.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
-              <span className="text-slate-600 font-medium text-[11px] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span>Mức trung vị chuẩn theo thứ được thu gọn để tối ưu chiều dọc cho bảng dữ liệu.</span>
-              </span>
-              <button
-                onClick={() => setIsMedianExpandedInModal(true)}
-                className="text-[11px] font-semibold text-rose-700 hover:text-rose-800 bg-white border border-rose-200 px-2.5 py-0.5 rounded cursor-pointer transition-colors shadow-2xs"
+        <div className="mb-3.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl relative">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Mức Trung Vị Chuẩn Theo Thứ:
+              </h3>
+              <select
+                value={benchmarkMetricId}
+                onChange={(e) => setBenchmarkMetricId(e.target.value)}
+                className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
               >
-                Xem 7 mức trung vị chuẩn ▼
-              </button>
+                {METRIC_PAIRS.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.pvHeader} / {p.uHeader})
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-
-          {(!isExpanded || isMedianExpandedInModal) && (
-            <div className="mb-3.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl relative">
-              {isExpanded && isMedianExpandedInModal && (
-                <button
-                  onClick={() => setIsMedianExpandedInModal(false)}
-                  className="absolute top-2.5 right-3 text-[11px] font-semibold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 px-2 py-0.5 rounded cursor-pointer shadow-2xs"
-                >
-                  ▲ Thu gọn
-                </button>
-              )}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5 pr-20">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Mức Trung Vị Chuẩn Theo Thứ:
-                  </h3>
-                  <select
-                    value={benchmarkMetricId}
-                    onChange={(e) => setBenchmarkMetricId(e.target.value)}
-                    className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
-                  >
-                    {METRIC_PAIRS.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.pvHeader} / {p.uHeader})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
-                  <span className="text-emerald-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    <strong>{anomalyStats.spikeCount}</strong> điểm tăng bất thường (≥ +20%)
-                  </span>
-                  <span className="text-rose-700 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                    <strong>{anomalyStats.dropCount}</strong> điểm giảm bất thường (≤ -20%)
-                  </span>
-                </div>
-              </div>
+            <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
+              <span className="text-emerald-700 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <strong>{anomalyStats.spikeCount}</strong> điểm tăng bất thường (≥ +20%)
+              </span>
+              <span className="text-rose-700 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <strong>{anomalyStats.dropCount}</strong> điểm giảm bất thường (≤ -20%)
+              </span>
+            </div>
+          </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                 {dowMedians.map((m) => {
                   const isSelected = selectedDowFilter === String(m.dayIndex);
                   const pvMed = m.mediansByMetric[selectedBenchmarkPair.pvKey] || 0;
                   const uMed = m.mediansByMetric[selectedBenchmarkPair.uKey] || 0;
-                  const ratio = uMed > 0 ? (pvMed / uMed).toFixed(2) : '0';
+                  const ratioMed = m.mediansByMetric[`${selectedBenchmarkPair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+                  const ratio = formatRatio(ratioMed);
 
                   return (
                     <button
@@ -840,8 +782,6 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                 })}
               </div>
             </div>
-          )}
-        </>
       )}
 
       {/* 4. Day of Week Quick Filter Chips */}
@@ -912,37 +852,12 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
           <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
           <span>Hiển thị toàn bộ <strong>{sortedRecords.length}</strong> ngày • Lăn chuột trong bảng để cuộn dọc • Giữ <strong>Shift + Lăn chuột</strong> (hoặc lăn trên hàng tiêu đề) để cuộn ngang</span>
         </div>
-        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`px-3 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer transition-all border shadow-2xs ${
-              isExpanded
-                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:text-slate-900'
-            }`}
-            title={isExpanded ? 'Thu nhỏ lại (hoặc nhấn phím Esc)' : 'Phóng to bảng toàn màn hình để dễ xem dữ liệu'}
-          >
-            {isExpanded ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 text-rose-600" />
-                <span>Thu nhỏ</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-slate-600" />
-                <span>Phóng to</span>
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
       {/* 5. Table Container */}
       <div
         ref={tableContainerRef}
-        className={`overflow-auto rounded-lg border border-slate-200 shadow-2xs relative scroll-smooth focus:outline-none ${
-          isExpanded ? 'flex-1 min-h-0' : 'max-h-[620px]'
-        }`}
+        className="overflow-auto rounded-lg border border-slate-200 shadow-2xs relative scroll-smooth focus:outline-none max-h-[620px]"
         tabIndex={0}
       >
         <table className="w-full text-xs text-left border-collapse whitespace-nowrap">
@@ -1014,8 +929,15 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                           <ArrowUpDown className="w-2.5 h-2.5 opacity-60" />
                         </div>
                       </th>
-                      <th className={`${zoomClasses.headerPadding} text-slate-500 font-normal text-right bg-slate-50`}>
-                        PV/U
+                      <th
+                        onClick={() => handleSort(`${p.id}_ratio`)}
+                        className={`${zoomClasses.headerPadding} text-emerald-800 font-semibold cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
+                        title={`Sắp xếp theo tỷ lệ PV/U của ${p.shortLabel} (So với trung vị thứ)`}
+                      >
+                        <div className="flex items-center justify-end gap-0.5">
+                          <span>PV/U</span>
+                          <ArrowUpDown className="w-2.5 h-2.5 opacity-60" />
+                        </div>
                       </th>
                     </React.Fragment>
                   ))}
@@ -1049,7 +971,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                   </th>
                 ))}
               </tr>
-            ) : (
+            ) : viewMode === 'u_only' ? (
               <tr>
                 <th onClick={() => handleSort('date_day')} className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
                   <div className="flex items-center gap-1">
@@ -1072,6 +994,34 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.uHeader}</span>
+                      <ArrowUpDown className="w-3 h-3 opacity-60" />
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            ) : (
+              <tr>
+                <th onClick={() => handleSort('date_day')} className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+                  <div className="flex items-center gap-1">
+                    <span className={zoomClasses.headerText}>Ngày</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th onClick={() => handleSort('dow')} className={`${zoomClasses.headerPadding} ${zoomClasses.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${zoomClasses.dowLeft} bg-slate-100 z-50 shadow-xs`}>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className={zoomClasses.headerText}>Thứ</span>
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  </div>
+                </th>
+                <th className={`${zoomClasses.headerPadding} sticky top-0 bg-slate-100 z-30 ${zoomClasses.headerText}`}>Site</th>
+                {METRIC_PAIRS.map(p => (
+                  <th
+                    key={p.id}
+                    onClick={() => handleSort(`${p.id}_ratio`)}
+                    className={`${zoomClasses.headerPadding} border-l border-slate-200 text-emerald-800 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <span>{p.shortLabel} PV/U</span>
                       <ArrowUpDown className="w-3 h-3 opacity-60" />
                     </div>
                   </th>
@@ -1140,19 +1090,18 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                       const pvMed = medianData?.mediansByMetric[p.pvKey] || 0;
                       const uMed = medianData?.mediansByMetric[p.uKey] || 0;
                       const ratio = u > 0 ? pv / u : 0;
+                      const ratioMed = medianData?.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
 
                       return (
                         <React.Fragment key={p.id}>
                           {/* PV with individual anomaly styling */}
-                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false)}
+                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false)}
 
                           {/* User with individual anomaly styling */}
-                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true)}
+                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false)}
 
-                          {/* Ratio */}
-                          <td className={`${zoomClasses.cellPadding} text-slate-500 text-right ${zoomClasses.valFont} bg-slate-50/40 font-mono`}>
-                            {formatRatio(ratio)}
-                          </td>
+                          {/* Ratio with individual anomaly styling & median comparison */}
+                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true)}
                         </React.Fragment>
                       );
                     })}
@@ -1163,7 +1112,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                       const pvMed = medianData?.mediansByMetric[p.pvKey] || 0;
                       return (
                         <React.Fragment key={p.id}>
-                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false)}
+                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false)}
                         </React.Fragment>
                       );
                     })}
@@ -1174,7 +1123,22 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
                       const uMed = medianData?.mediansByMetric[p.uKey] || 0;
                       return (
                         <React.Fragment key={p.id}>
-                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true)}
+                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false)}
+                        </React.Fragment>
+                      );
+                    })}
+
+                    {/* PV/U Ratio only view */}
+                    {viewMode === 'ratio_only' && METRIC_PAIRS.map(p => {
+                      const pv = Number(r[p.pvKey]) || 0;
+                      const u = Number(r[p.uKey]) || 0;
+                      const ratio = u > 0 ? pv / u : 0;
+                      const pvMed = medianData?.mediansByMetric[p.pvKey] || 0;
+                      const uMed = medianData?.mediansByMetric[p.uKey] || 0;
+                      const ratioMed = medianData?.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+                      return (
+                        <React.Fragment key={p.id}>
+                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true)}
                         </React.Fragment>
                       );
                     })}
@@ -1194,25 +1158,9 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
           <span>Tổng số: <strong>{sortedRecords.length}</strong> ngày</span>
           <span className="text-slate-300">•</span>
           <span className="text-slate-500 text-[11px]">Đã hiển thị toàn bộ danh sách để cuộn xem</span>
-          {isExpanded && (
-            <>
-              <span className="text-slate-300">•</span>
-              <span className="text-rose-600 text-[11px] font-semibold">Chế độ phóng to box</span>
-            </>
-          )}
         </div>
-        {isExpanded && (
-          <button
-            onClick={() => setIsExpanded(false)}
-            className="text-xs text-rose-600 hover:text-rose-700 flex items-center gap-1.5 cursor-pointer font-bold bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200 transition-colors shadow-2xs"
-          >
-            <Minimize2 className="w-3.5 h-3.5" />
-            <span>Thu nhỏ lại (Esc)</span>
-          </button>
-        )}
       </div>
 
     </div>
-    </>
   );
 };
