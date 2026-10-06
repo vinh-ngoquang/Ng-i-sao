@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, FileText, Download, CheckCircle2, AlertCircle, ExternalLink, Calendar } from 'lucide-react';
+import { RefreshCw, FileText, Download, CheckCircle2, AlertCircle, ExternalLink, Calendar, HelpCircle } from 'lucide-react';
 import { formatDateVN } from '../utils/formatters';
 
 interface HeaderProps {

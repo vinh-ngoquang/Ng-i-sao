@@ -5,11 +5,12 @@ import { KpiSummaryCards } from './components/KpiSummaryCards';
 import { TimeSeriesChart } from './components/TimeSeriesChart';
 import { DataTableSection } from './components/DataTableSection';
 import { MarkdownViewerModal } from './components/MarkdownViewerModal';
+import { SyncStatusModal } from './components/SyncStatusModal';
 import { NgoiSaoRecord, FilterState } from './types';
 import { filterRecords, computeMetricAggregates, computeOverallSummary } from './utils/dataProcessing';
 import { formatDateVN } from './utils/formatters';
 import { INITIAL_RECORDS, INITIAL_LAST_UPDATED } from './data/initialData';
-import { fetchLiveGoogleSheetsData } from './utils/googleSheetsSync';
+import { fetchLiveGoogleSheetsData, parseTsvToRecords } from './utils/googleSheetsSync';
 
 export default function App() {
   // Preloaded with bundled 264 records for guaranteed immediate render
@@ -35,6 +36,7 @@ export default function App() {
 
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isMarkdownOpen, setIsMarkdownOpen] = useState<boolean>(false);
+  const [isSyncStatusOpen, setIsSyncStatusOpen] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({
     show: false,
     msg: '',
@@ -101,16 +103,21 @@ export default function App() {
   const handleManualSync = async () => {
     setIsSyncing(true);
     let success = false;
+    let fetchedRecordsCount = 0;
+    let latestDate = '';
+    const previousCount = records.length;
 
-    // Try backend sync first
+    // 1. Try backend sync first
     try {
       const res = await fetch('/api/sync', { method: 'POST' });
       if (res.ok) {
         const json = await res.json();
-        if (json.records && json.records.length > 0) {
+        if (json.records && Array.isArray(json.records) && json.records.length > 0) {
           setRecords(json.records);
           const time = json.lastSyncTime || new Date().toISOString();
           setLastSyncTime(time);
+          fetchedRecordsCount = json.records.length;
+          latestDate = json.records[json.records.length - 1]?.date_day || '';
           try {
             localStorage.setItem('ngoisao_records_cache', JSON.stringify(json.records));
             localStorage.setItem('ngoisao_last_sync', time);
@@ -120,17 +127,45 @@ export default function App() {
           success = true;
         }
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn('Backend sync failed, trying fallback:', err);
     }
 
-    // Fallback: direct Google Sheets TSV fetch
+    // 2. Try GET /api/data?refresh=true as secondary backend option
+    if (!success) {
+      try {
+        const res = await fetch('/api/data?refresh=true');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.records && Array.isArray(json.records) && json.records.length > 0) {
+            setRecords(json.records);
+            const time = json.lastSyncTime || new Date().toISOString();
+            setLastSyncTime(time);
+            fetchedRecordsCount = json.records.length;
+            latestDate = json.records[json.records.length - 1]?.date_day || '';
+            try {
+              localStorage.setItem('ngoisao_records_cache', JSON.stringify(json.records));
+              localStorage.setItem('ngoisao_last_sync', time);
+            } catch {
+              // ignore
+            }
+            success = true;
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /api/data?refresh=true failed:', err);
+      }
+    }
+
+    // 3. Fallback: direct Google Sheets TSV fetch
     if (!success) {
       try {
         const live = await fetchLiveGoogleSheetsData();
         if (live.records && live.records.length > 0) {
           setRecords(live.records);
           setLastSyncTime(live.lastSync);
+          fetchedRecordsCount = live.records.length;
+          latestDate = live.records[live.records.length - 1]?.date_day || '';
           try {
             localStorage.setItem('ngoisao_records_cache', JSON.stringify(live.records));
             localStorage.setItem('ngoisao_last_sync', live.lastSync);
@@ -145,12 +180,47 @@ export default function App() {
     }
 
     if (success) {
-      triggerToast('Đã đồng bộ thành công dữ liệu mới nhất từ Google Sheets và lưu file MD!', 'success');
+      if (fetchedRecordsCount > previousCount) {
+        triggerToast(`Đồng bộ thành công! Đã thêm ${fetchedRecordsCount - previousCount} ngày mới (Tổng ${fetchedRecordsCount} ngày, mới nhất đến ${formatDateVN(latestDate)}).`, 'success');
+      } else {
+        triggerToast(`Đã đồng bộ Google Sheets: Hiện có ${fetchedRecordsCount} ngày (mới nhất đến ${formatDateVN(latestDate)}). Chưa có ngày mới trên link xuất bản.`, 'success');
+      }
     } else {
-      triggerToast('Đang hiển thị bản dữ liệu đã lưu trữ (264 ngày).', 'success');
+      triggerToast('Đang hiển thị bản dữ liệu đã lưu trữ.', 'success');
     }
 
     setIsSyncing(false);
+  };
+
+  const handleImportCustomData = async (tsvText: string): Promise<{ success: boolean; count: number; error?: string }> => {
+    try {
+      const parsed = parseTsvToRecords(tsvText);
+      if (parsed.records.length === 0) {
+        return { success: false, count: 0, error: 'Không tìm thấy dòng dữ liệu hợp lệ (Cần có cột ngày YYYY-MM-DD).' };
+      }
+
+      // Merge records by date_day
+      const dateMap = new Map<string, NgoiSaoRecord>();
+      records.forEach((r) => dateMap.set(r.date_day, r));
+      parsed.records.forEach((r) => dateMap.set(r.date_day, r));
+
+      const merged = Array.from(dateMap.values()).sort((a, b) => a.date_day.localeCompare(b.date_day));
+      setRecords(merged);
+      const nowIso = new Date().toISOString();
+      setLastSyncTime(nowIso);
+
+      try {
+        localStorage.setItem('ngoisao_records_cache', JSON.stringify(merged));
+        localStorage.setItem('ngoisao_last_sync', nowIso);
+      } catch {
+        // ignore
+      }
+
+      triggerToast(`Đã nạp thành công ${parsed.records.length} dòng dữ liệu vào Dashboard!`, 'success');
+      return { success: true, count: parsed.records.length };
+    } catch (err: any) {
+      return { success: false, count: 0, error: err.message };
+    }
   };
 
   const triggerToast = (msg: string, type: 'success' | 'error') => {
@@ -240,6 +310,7 @@ export default function App() {
         lastSyncTime={lastSyncTime}
         isSyncing={isSyncing}
         onRefresh={handleManualSync}
+        onOpenSyncStatus={() => setIsSyncStatusOpen(true)}
         onOpenMarkdown={() => setIsMarkdownOpen(true)}
         onExportCsv={handleExportFullCsv}
       />
@@ -278,6 +349,19 @@ export default function App() {
         isSyncing={isSyncing}
         lastSyncTime={lastSyncTime}
         records={records}
+      />
+
+      {/* Modal: Sync Status & Google Sheets Troubleshoot */}
+      <SyncStatusModal
+        isOpen={isSyncStatusOpen}
+        onClose={() => setIsSyncStatusOpen(false)}
+        totalDays={records.length}
+        lastSyncTime={lastSyncTime}
+        isSyncing={isSyncing}
+        onTriggerSync={handleManualSync}
+        earliestDate={availableDates.min}
+        latestDate={availableDates.max}
+        onImportCustomData={handleImportCustomData}
       />
 
       {/* Footer */}
