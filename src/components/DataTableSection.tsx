@@ -98,9 +98,11 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
   };
 }
 
+export type DisplayMode = 'both_pct' | 'both_abs' | 'diff_pct' | 'diff_abs' | 'value_only';
+
 export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, allSiteRecords, searchQuery }) => {
   const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only' | 'ratio_only'>('paired');
-  const [displayMode, setDisplayMode] = useState<'both' | 'value_only' | 'diff_only'>('both');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('both_pct');
   const [sortField, setSortField] = useState<string>('date_day');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedDowFilter, setSelectedDowFilter] = useState<string>('all');
@@ -333,9 +335,13 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
     extraColClass: string = ''
   ) => {
     const diffPct = medianVal > 0 ? ((val - medianVal) / medianVal) * 100 : 0;
+    const diffAbs = val - medianVal;
     const isUp = diffPct >= 0;
     const diffSign = isUp ? '+' : '';
-    const diffFormatted = `${diffSign}${diffPct.toFixed(1)}%`;
+    const diffPctFormatted = `${diffSign}${diffPct.toFixed(1)}%`;
+    const diffAbsFormatted = isRatio
+      ? `${diffSign}${diffAbs.toFixed(2)}`
+      : `${diffSign}${formatNumber(diffAbs)}`;
     const anomaly = classifyAnomaly(diffPct, anomalyThreshold);
 
     const isDimmed = focusAnomaliesOnly && !anomaly.isAnomaly;
@@ -344,7 +350,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
     const formattedVal = isRatio ? formatRatio(val) : formatNumber(val);
     const formattedMedian = isRatio ? formatRatio(medianVal) : formatNumber(medianVal);
 
-    const tooltip = `[${anomaly.label}] ${metricHeader}: ${formattedVal}\nTrung vị ${dowName}: ${formattedMedian}\nĐộ lệch vs thứ: ${diffFormatted}`;
+    const tooltip = `[${anomaly.label}] ${metricHeader}: ${formattedVal}\nTrung vị ${dowName}: ${formattedMedian}\nĐộ lệch %: ${diffPctFormatted}\nLệch tuyệt đối: ${diffAbsFormatted}`;
 
     if (displayMode === 'value_only') {
       return (
@@ -358,27 +364,54 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
       );
     }
 
-    if (displayMode === 'diff_only') {
+    if (displayMode === 'diff_pct') {
       return (
         <td className={`px-2 py-1.5 text-right cursor-help ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
           <div className="flex items-center justify-end h-9">
-            <span className={`inline-block font-mono text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded w-13 text-center ${anomaly.badgeClass}`}>
-              {diffFormatted}
+            <span className={`inline-block font-mono text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded min-w-[48px] text-center ${anomaly.badgeClass}`}>
+              {diffPctFormatted}
             </span>
           </div>
         </td>
       );
     }
 
-    // Both (default): formatted value on top, high-visibility color badge below
+    if (displayMode === 'diff_abs') {
+      return (
+        <td className={`px-2 py-1.5 text-right cursor-help ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+          <div className="flex items-center justify-end h-9">
+            <span className={`inline-block font-mono text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded min-w-[52px] text-center ${anomaly.badgeClass}`}>
+              {diffAbsFormatted}
+            </span>
+          </div>
+        </td>
+      );
+    }
+
+    if (displayMode === 'both_abs') {
+      return (
+        <td className={`px-2 py-1.5 text-right cursor-help transition-colors ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+          <div className="flex flex-col items-end justify-center h-9 leading-none">
+            <span className={`font-mono text-xs tabular-nums mb-0.5 ${anomaly.textClass}`}>
+              {formattedVal}
+            </span>
+            <span className={`inline-block font-mono text-[9.5px] tabular-nums font-semibold px-1 py-0.5 rounded min-w-[50px] text-center leading-tight ${anomaly.badgeClass}`}>
+              {diffAbsFormatted}
+            </span>
+          </div>
+        </td>
+      );
+    }
+
+    // Both with % (default: both_pct): formatted value on top, % diff badge below
     return (
       <td className={`px-2 py-1.5 text-right cursor-help transition-colors ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
         <div className="flex flex-col items-end justify-center h-9 leading-none">
           <span className={`font-mono text-xs tabular-nums mb-0.5 ${anomaly.textClass}`}>
             {formattedVal}
           </span>
-          <span className={`inline-block font-mono text-[9.5px] tabular-nums font-semibold px-1 py-0.5 rounded w-12 text-center leading-tight ${anomaly.badgeClass}`}>
-            {diffFormatted}
+          <span className={`inline-block font-mono text-[9.5px] tabular-nums font-semibold px-1 py-0.5 rounded min-w-[48px] text-center leading-tight ${anomaly.badgeClass}`}>
+            {diffPctFormatted}
           </span>
         </div>
       </td>
@@ -394,14 +427,17 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
       headerCols.push(`${p.pvHeader}`);
       headerCols.push(`${p.pvHeader}_TV_Thu`);
       headerCols.push(`${p.pvHeader}_Lech_%`);
+      headerCols.push(`${p.pvHeader}_Lech_Tuyet_Doi`);
       headerCols.push(`${p.pvHeader}_Danh_Gia`);
       headerCols.push(`${p.uHeader}`);
       headerCols.push(`${p.uHeader}_TV_Thu`);
       headerCols.push(`${p.uHeader}_Lech_%`);
+      headerCols.push(`${p.uHeader}_Lech_Tuyet_Doi`);
       headerCols.push(`${p.uHeader}_Danh_Gia`);
       headerCols.push(`${p.shortLabel}_PV_U`);
       headerCols.push(`${p.shortLabel}_PV_U_TV_Thu`);
       headerCols.push(`${p.shortLabel}_PV_U_Lech_%`);
+      headerCols.push(`${p.shortLabel}_PV_U_Lech_Tuyet_Doi`);
       headerCols.push(`${p.shortLabel}_PV_U_Danh_Gia`);
     });
 
@@ -423,6 +459,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
         const ratio = u > 0 ? pv / u : 0;
         const ratioDiffVal = rMed > 0 ? ((ratio - rMed) / rMed) * 100 : 0;
 
+        const pvDiffAbs = pv - pvMed;
+        const uDiffAbs = u - uMed;
+        const ratioDiffAbs = ratio - rMed;
+
         const pvAnomaly = classifyAnomaly(pvDiffVal, anomalyThreshold);
         const uAnomaly = classifyAnomaly(uDiffVal, anomalyThreshold);
         const ratioAnomaly = classifyAnomaly(ratioDiffVal, anomalyThreshold);
@@ -431,10 +471,14 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
         const uDiffStr = `${uDiffVal >= 0 ? '+' : ''}${uDiffVal.toFixed(1)}%`;
         const ratioDiffStr = `${ratioDiffVal >= 0 ? '+' : ''}${ratioDiffVal.toFixed(1)}%`;
 
+        const pvDiffAbsStr = `${pvDiffAbs >= 0 ? '+' : ''}${pvDiffAbs}`;
+        const uDiffAbsStr = `${uDiffAbs >= 0 ? '+' : ''}${uDiffAbs}`;
+        const ratioDiffAbsStr = `${ratioDiffAbs >= 0 ? '+' : ''}${ratioDiffAbs.toFixed(2)}`;
+
         rowCols.push(
-          String(pv), String(pvMed), pvDiffStr, pvAnomaly.label,
-          String(u), String(uMed), uDiffStr, uAnomaly.label,
-          ratio.toFixed(2), rMed.toFixed(2), ratioDiffStr, ratioAnomaly.label
+          String(pv), String(pvMed), pvDiffStr, pvDiffAbsStr, pvAnomaly.label,
+          String(u), String(uMed), uDiffStr, uDiffAbsStr, uAnomaly.label,
+          ratio.toFixed(2), rMed.toFixed(2), ratioDiffStr, ratioDiffAbsStr, ratioAnomaly.label
         );
       });
 
@@ -523,32 +567,53 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
             </button>
           </div>
 
-          {/* Display Mode Toggle */}
+          {/* Display Mode Toggle with Absolute Diff options */}
           <div className="inline-flex items-center rounded-lg p-1 bg-slate-100 border border-slate-200/80 text-xs shadow-2xs">
             <span className="pl-2 pr-1 text-slate-400">
               <Eye className="w-3.5 h-3.5" />
             </span>
             <button
-              onClick={() => setDisplayMode('both')}
+              onClick={() => setDisplayMode('both_pct')}
               className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
-                displayMode === 'both' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                displayMode === 'both_pct' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Hiển thị Giá trị thực + % Lệch so với trung vị thứ"
             >
               Số & % Lệch
             </button>
             <button
-              onClick={() => setDisplayMode('diff_only')}
+              onClick={() => setDisplayMode('both_abs')}
               className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
-                displayMode === 'diff_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+                displayMode === 'both_abs' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Hiển thị Giá trị thực + Số lệch tuyệt đối (±PV, ±User) so với trung vị thứ"
+            >
+              Số & Lệch Tuyệt Đối
+            </button>
+            <button
+              onClick={() => setDisplayMode('diff_pct')}
+              className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                displayMode === 'diff_pct' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Chỉ hiển thị % Lệch so với trung vị thứ"
             >
               Chỉ % Lệch
+            </button>
+            <button
+              onClick={() => setDisplayMode('diff_abs')}
+              className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                displayMode === 'diff_abs' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Chỉ hiển thị Số lệch tuyệt đối (±PV, ±User) so với trung vị thứ"
+            >
+              Chỉ Lệch Tuyệt Đối
             </button>
             <button
               onClick={() => setDisplayMode('value_only')}
               className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
                 displayMode === 'value_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
+              title="Chỉ hiển thị Giá trị thực tế"
             >
               Chỉ Số
             </button>
