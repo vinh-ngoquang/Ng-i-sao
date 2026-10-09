@@ -136,11 +136,31 @@ export function computeDayOfWeekMedians(records: NgoiSaoRecord[]): DayOfWeekMedi
 }
 
 
+export function getAvailableSites(records: NgoiSaoRecord[]): { id: string; name: string; count: number }[] {
+  if (!records || records.length === 0) return [];
+  const map = new Map<string, number>();
+  records.forEach(r => {
+    const site = r.site ? r.site.trim() : 'Ngôi sao';
+    map.set(site, (map.get(site) || 0) + 1);
+  });
+  return Array.from(map.entries()).map(([name, count]) => ({
+    id: name,
+    name,
+    count,
+  }));
+}
+
 export function filterRecords(records: NgoiSaoRecord[], filter: FilterState): NgoiSaoRecord[] {
   if (!records || records.length === 0) return [];
 
+  // Filter by Site first if selectedSite is set and not 'all'
+  let bySite = records;
+  if (filter.selectedSite && filter.selectedSite !== 'all') {
+    bySite = records.filter(r => (r.site || '').toLowerCase() === filter.selectedSite.toLowerCase());
+  }
+
   // Sort ascending by date
-  const sorted = [...records].sort((a, b) => a.date_day.localeCompare(b.date_day));
+  const sorted = [...bySite].sort((a, b) => a.date_day.localeCompare(b.date_day));
 
   if (filter.dateRange === 'all') {
     return sorted;

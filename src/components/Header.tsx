@@ -12,6 +12,9 @@ interface HeaderProps {
   onOpenSyncStatus: () => void;
   onOpenMarkdown: () => void;
   onExportCsv: () => void;
+  selectedSite?: string;
+  onSelectSite?: (site: string) => void;
+  availableSites?: { id: string; name: string; count: number }[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,11 +27,50 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSyncStatus,
   onOpenMarkdown,
   onExportCsv,
+  selectedSite = 'Ngôi sao',
+  onSelectSite,
+  availableSites = [],
 }) => {
   const syncDateFormatted = lastSyncTime
     ? new Date(lastSyncTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' +
       new Date(lastSyncTime).toLocaleDateString('vi-VN')
     : 'Chưa đồng bộ';
+
+  // Branding configuration per site
+  const getSiteConfig = (site: string) => {
+    switch (site.toLowerCase()) {
+      case 'vnexpress':
+        return {
+          shortCode: 'VNE',
+          gradient: 'from-red-700 via-rose-600 to-amber-600',
+          badge: 'bg-red-50 text-red-700 border-red-200',
+          title: 'VnExpress',
+        };
+      case 'english':
+        return {
+          shortCode: 'ENG',
+          gradient: 'from-blue-600 via-indigo-600 to-cyan-500',
+          badge: 'bg-blue-50 text-blue-700 border-blue-200',
+          title: 'VnExpress International (English)',
+        };
+      case 'all':
+        return {
+          shortCode: 'ALL',
+          gradient: 'from-purple-600 via-indigo-600 to-slate-700',
+          badge: 'bg-purple-50 text-purple-700 border-purple-200',
+          title: 'Tất Cả Site (Tổng Hợp)',
+        };
+      default:
+        return {
+          shortCode: 'NS',
+          gradient: 'from-rose-600 to-amber-500',
+          badge: 'bg-rose-50 text-rose-700 border-rose-200',
+          title: 'Ngôi Sao',
+        };
+    }
+  };
+
+  const currentConfig = getSiteConfig(siteName);
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs" id="dashboard-header">
@@ -37,15 +79,15 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Site info and title */}
           <div className="flex items-center gap-3.5">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-sm font-bold text-lg tracking-tight">
-              NS
+            <div className={`h-11 w-11 rounded-xl bg-gradient-to-tr ${currentConfig.gradient} flex items-center justify-center text-white shadow-sm font-bold text-base tracking-tight shrink-0`}>
+              {currentConfig.shortCode}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Dashboard {siteName}
+                  Dashboard {currentConfig.title}
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${currentConfig.badge}`}>
                   Site: {siteName}
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">

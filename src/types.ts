@@ -70,6 +70,7 @@ export interface MetricAggregate {
 }
 
 export interface FilterState {
+  selectedSite: string; // 'Ngôi sao' | 'VnExpress' | 'English' | 'all'
   dateRange: 'all' | '7d' | '14d' | '30d' | '90d' | 'custom';
   startDate: string;
   endDate: string;

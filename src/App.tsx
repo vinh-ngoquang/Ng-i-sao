@@ -7,13 +7,13 @@ import { DataTableSection } from './components/DataTableSection';
 import { MarkdownViewerModal } from './components/MarkdownViewerModal';
 import { SyncStatusModal } from './components/SyncStatusModal';
 import { NgoiSaoRecord, FilterState } from './types';
-import { filterRecords, computeMetricAggregates, computeOverallSummary } from './utils/dataProcessing';
+import { filterRecords, computeMetricAggregates, computeOverallSummary, getAvailableSites } from './utils/dataProcessing';
 import { formatDateVN } from './utils/formatters';
 import { INITIAL_RECORDS, INITIAL_LAST_UPDATED } from './data/initialData';
 import { fetchLiveGoogleSheetsData, parseTsvToRecords } from './utils/googleSheetsSync';
 
 export default function App() {
-  // Preloaded with bundled 264 records for guaranteed immediate render
+  // Preloaded with bundled records for guaranteed immediate render
   const [records, setRecords] = useState<NgoiSaoRecord[]>(() => {
     // Check localStorage cache first, otherwise use pre-bundled INITIAL_RECORDS
     try {
@@ -44,13 +44,21 @@ export default function App() {
   });
 
   // Filters
-  const [filter, setFilter] = useState<FilterState>({
+  const [filter, setFilter] = useState<FilterState>(() => ({
+    selectedSite: localStorage.getItem('ngoisao_selected_site') || 'Ngôi sao',
     dateRange: 'all',
     startDate: '',
     endDate: '',
     selectedCategory: 'all',
     activeMetricId: 'total',
-  });
+  }));
+
+  // Sync selectedSite change to localStorage
+  useEffect(() => {
+    if (filter.selectedSite) {
+      localStorage.setItem('ngoisao_selected_site', filter.selectedSite);
+    }
+  }, [filter.selectedSite]);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -230,14 +238,28 @@ export default function App() {
     }, 4000);
   };
 
-  // Min and Max dates available in data
-  const availableDates = useMemo(() => {
-    if (!records || records.length === 0) return { min: '', max: '' };
-    return {
-      min: records[0].date_day,
-      max: records[records.length - 1].date_day,
-    };
+  // List of distinct sites available in dataset
+  const availableSites = useMemo(() => {
+    return getAvailableSites(records);
   }, [records]);
+
+  // Records for active site (used for total count and date bounds)
+  const recordsForActiveSite = useMemo(() => {
+    if (filter.selectedSite && filter.selectedSite !== 'all') {
+      return records.filter((r) => (r.site || '').toLowerCase() === filter.selectedSite.toLowerCase());
+    }
+    return records;
+  }, [records, filter.selectedSite]);
+
+  // Min and Max dates available in data for the active site
+  const availableDates = useMemo(() => {
+    if (!recordsForActiveSite || recordsForActiveSite.length === 0) return { min: '', max: '' };
+    const sorted = [...recordsForActiveSite].sort((a, b) => a.date_day.localeCompare(b.date_day));
+    return {
+      min: sorted[0].date_day,
+      max: sorted[sorted.length - 1].date_day,
+    };
+  }, [recordsForActiveSite]);
 
   // Filtered dataset
   const filteredRecords = useMemo(() => {
@@ -262,18 +284,20 @@ export default function App() {
   }, [filteredRecords]);
 
   const handleExportFullCsv = () => {
-    if (records.length === 0) return;
-    const headers = Object.keys(records[0]);
+    const datasetToExport = recordsForActiveSite.length > 0 ? recordsForActiveSite : records;
+    if (datasetToExport.length === 0) return;
+    const headers = Object.keys(datasetToExport[0]);
     const csvRows = [headers.join(',')];
-    records.forEach((r) => {
+    datasetToExport.forEach((r) => {
       const vals = headers.map((h) => (r as any)[h]);
       csvRows.push(vals.join(','));
     });
+    const siteSlug = (filter.selectedSite || 'all').toLowerCase().replace(/\s+/g, '_');
     const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ngoisao_toan_bo_du_lieu_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `ngoisao_${siteSlug}_du_lieu_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -304,8 +328,8 @@ export default function App() {
 
       {/* Main Header */}
       <Header
-        siteName="Ngôi sao"
-        totalDays={records.length}
+        siteName={filter.selectedSite === 'all' ? 'Tất cả Site' : (filter.selectedSite || 'Ngôi sao')}
+        totalDays={recordsForActiveSite.length}
         dateRangeText={dateRangeText}
         lastSyncTime={lastSyncTime}
         isSyncing={isSyncing}
@@ -313,6 +337,9 @@ export default function App() {
         onOpenSyncStatus={() => setIsSyncStatusOpen(true)}
         onOpenMarkdown={() => setIsMarkdownOpen(true)}
         onExportCsv={handleExportFullCsv}
+        selectedSite={filter.selectedSite}
+        onSelectSite={(site) => setFilter(prev => ({ ...prev, selectedSite: site }))}
+        availableSites={availableSites}
       />
 
       {/* Body Container */}
@@ -325,6 +352,7 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           availableDates={availableDates}
           filteredDaysCount={filteredRecords.length}
+          availableSites={availableSites}
         />
 
         {/* 1. Overall KPI Highlights */}

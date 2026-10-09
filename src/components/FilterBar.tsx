@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Filter, Layers, Search, Sparkles } from 'lucide-react';
+import { Calendar, Filter, Layers, Search, Sparkles, Globe, Newspaper } from 'lucide-react';
 import { FilterState, MetricCategory } from '../types';
 import { CATEGORIES } from '../data/metricPairs';
 
@@ -10,6 +10,7 @@ interface FilterBarProps {
   setSearchQuery: (q: string) => void;
   availableDates: { min: string; max: string };
   filteredDaysCount: number;
+  availableSites?: { id: string; name: string; count: number }[];
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -19,6 +20,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   setSearchQuery,
   availableDates,
   filteredDaysCount,
+  availableSites = [],
 }) => {
   const dateRanges: { id: FilterState['dateRange']; label: string }[] = [
     { id: 'all', label: 'Tất cả' },
@@ -29,10 +31,92 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     { id: 'custom', label: 'Tùy chọn' },
   ];
 
+  // Default site options if availableSites not passed yet
+  const sitesList = availableSites.length > 0
+    ? availableSites
+    : [
+        { id: 'Ngôi sao', name: 'Ngôi sao', count: 281 },
+        { id: 'VnExpress', name: 'VnExpress', count: 281 },
+        { id: 'English', name: 'English', count: 281 },
+      ];
+
+  const totalAllRows = sitesList.reduce((acc, s) => acc + s.count, 0);
+
+  const getSiteStyle = (siteId: string, isSelected: boolean) => {
+    switch (siteId.toLowerCase()) {
+      case 'ngôi sao':
+        return isSelected
+          ? 'bg-rose-600 text-white font-bold shadow-xs ring-2 ring-rose-300'
+          : 'bg-rose-50/80 text-rose-800 hover:bg-rose-100 border border-rose-200';
+      case 'vnexpress':
+        return isSelected
+          ? 'bg-red-700 text-white font-bold shadow-xs ring-2 ring-red-300'
+          : 'bg-red-50/80 text-red-800 hover:bg-red-100 border border-red-200';
+      case 'english':
+        return isSelected
+          ? 'bg-blue-600 text-white font-bold shadow-xs ring-2 ring-blue-300'
+          : 'bg-blue-50/80 text-blue-800 hover:bg-blue-100 border border-blue-200';
+      default:
+        return isSelected
+          ? 'bg-slate-900 text-white font-bold shadow-xs'
+          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200';
+    }
+  };
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs mb-6 space-y-3.5" id="dashboard-filter-bar">
       
-      {/* Top row: Date Range and Search */}
+      {/* 1. TOP ROW: SITE SELECTOR TABS */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center text-xs font-bold text-slate-700 mr-1">
+            <Globe className="w-4 h-4 mr-1.5 text-rose-600" />
+            <span>CHỌN SITE:</span>
+          </div>
+
+          {sitesList.map(s => {
+            const isSelected = (filter.selectedSite || 'Ngôi sao').toLowerCase() === s.id.toLowerCase();
+            return (
+              <button
+                key={s.id}
+                id={`btn-site-${s.id}`}
+                onClick={() => setFilter(prev => ({ ...prev, selectedSite: s.id }))}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg transition-all cursor-pointer font-medium ${getSiteStyle(s.id, isSelected)}`}
+              >
+                <span>{s.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                  isSelected ? 'bg-white/25 text-white' : 'bg-black/5 text-slate-600'
+                }`}>
+                  {s.count} ngày
+                </span>
+              </button>
+            );
+          })}
+
+          <button
+            id="btn-site-all"
+            onClick={() => setFilter(prev => ({ ...prev, selectedSite: 'all' }))}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg transition-all cursor-pointer font-medium ${
+              filter.selectedSite === 'all'
+                ? 'bg-slate-900 text-white font-bold shadow-xs ring-2 ring-slate-400'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+            }`}
+          >
+            <span>Tất cả site (Tổng hợp)</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+              filter.selectedSite === 'all' ? 'bg-white/25 text-white' : 'bg-black/5 text-slate-600'
+            }`}>
+              {totalAllRows} ngày
+            </span>
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium">
+          Site hiện tại: <strong className="text-rose-600 font-bold">{filter.selectedSite === 'all' ? 'Tất cả Site' : (filter.selectedSite || 'Ngôi sao')}</strong>
+        </div>
+      </div>
+
+      {/* 2. SECOND ROW: Date Range and Search */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         
         {/* Date Presets */}
