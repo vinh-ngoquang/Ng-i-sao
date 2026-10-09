@@ -44,14 +44,18 @@ export default function App() {
   });
 
   // Filters
-  const [filter, setFilter] = useState<FilterState>(() => ({
-    selectedSite: localStorage.getItem('ngoisao_selected_site') || 'Ngôi sao',
-    dateRange: 'all',
-    startDate: '',
-    endDate: '',
-    selectedCategory: 'all',
-    activeMetricId: 'total',
-  }));
+  const [filter, setFilter] = useState<FilterState>(() => {
+    const saved = localStorage.getItem('ngoisao_selected_site');
+    const validSite = saved && saved !== 'all' ? saved : 'Ngôi sao';
+    return {
+      selectedSite: validSite,
+      dateRange: 'all',
+      startDate: '',
+      endDate: '',
+      selectedCategory: 'all',
+      activeMetricId: 'total',
+    };
+  });
 
   // Sync selectedSite change to localStorage
   useEffect(() => {

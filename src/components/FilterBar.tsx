@@ -92,27 +92,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               </button>
             );
           })}
-
-          <button
-            id="btn-site-all"
-            onClick={() => setFilter(prev => ({ ...prev, selectedSite: 'all' }))}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg transition-all cursor-pointer font-medium ${
-              filter.selectedSite === 'all'
-                ? 'bg-slate-900 text-white font-bold shadow-xs ring-2 ring-slate-400'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <span>Tất cả site (Tổng hợp)</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
-              filter.selectedSite === 'all' ? 'bg-white/25 text-white' : 'bg-black/5 text-slate-600'
-            }`}>
-              {totalAllRows} ngày
-            </span>
-          </button>
         </div>
 
         <div className="text-xs text-slate-500 font-medium">
-          Site hiện tại: <strong className="text-rose-600 font-bold">{filter.selectedSite === 'all' ? 'Tất cả Site' : (filter.selectedSite || 'Ngôi sao')}</strong>
+          Đang xem site: <strong className="text-rose-600 font-bold">{filter.selectedSite || 'Ngôi sao'}</strong>
         </div>
       </div>
 
