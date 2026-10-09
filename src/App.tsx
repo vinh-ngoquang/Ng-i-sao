@@ -370,7 +370,11 @@ export default function App() {
         />
 
         {/* 3. Detailed Data Table (Paired view, PV view, User view, Day of Week & Deviation vs Median for every metric) */}
-        <DataTableSection records={filteredRecords} searchQuery={searchQuery} />
+        <DataTableSection
+          records={filteredRecords}
+          allSiteRecords={recordsForActiveSite}
+          searchQuery={searchQuery}
+        />
       </main>
 
       {/* Modal: View and Download Markdown File DATA_NGOISAO.md */}

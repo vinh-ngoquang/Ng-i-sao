@@ -7,6 +7,7 @@ import { getDayOfWeekInfo, computeDayOfWeekMedians, DAY_OF_WEEK_NAMES } from '..
 
 interface DataTableSectionProps {
   records: NgoiSaoRecord[];
+  allSiteRecords?: NgoiSaoRecord[];
   searchQuery: string;
 }
 
@@ -97,7 +98,7 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
   };
 }
 
-export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, searchQuery }) => {
+export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, allSiteRecords, searchQuery }) => {
   const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only' | 'ratio_only'>('paired');
   const [displayMode, setDisplayMode] = useState<'both' | 'value_only' | 'diff_only'>('both');
   const [sortField, setSortField] = useState<string>('date_day');
@@ -107,6 +108,11 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
   const [selectedDowFilter, setSelectedDowFilter] = useState<string>('all');
   const [showMedianBenchmarks, setShowMedianBenchmarks] = useState<boolean>(true);
   const [benchmarkMetricId, setBenchmarkMetricId] = useState<string>('total');
+
+  // Dữ liệu chuẩn để tính trung vị benchmark: Cố định toàn bộ từ đầu năm cho site được chọn
+  const baselineRecords = useMemo(() => {
+    return allSiteRecords && allSiteRecords.length > 0 ? allSiteRecords : records;
+  }, [allSiteRecords, records]);
 
   // Mức thu phóng cỡ chữ & ô dữ liệu ('normal': 100%, 'large': 115%, 'xl': 130%)
   const [zoomLevel, setZoomLevel] = useState<'normal' | 'large' | 'xl'>('normal');
@@ -170,10 +176,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
   const [focusAnomaliesOnly, setFocusAnomaliesOnly] = useState<boolean>(false); // Dim normal cells, emphasize outliers
   const [filterOutlierRowsOnly, setFilterOutlierRowsOnly] = useState<boolean>(false); // Filter only rows with at least 1 anomaly
 
-  // Compute medians by day of the week across the dataset for ALL metrics
+  // Compute medians by day of the week across the FULL baseline dataset (fixed from beginning of year)
   const dowMedians = useMemo(() => {
-    return computeDayOfWeekMedians(records);
-  }, [records]);
+    return computeDayOfWeekMedians(baselineRecords);
+  }, [baselineRecords]);
 
   // Lookup map for day-of-week median
   const medianMap = useMemo(() => {
@@ -702,8 +708,12 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, sea
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Mức Trung Vị Chuẩn Theo Thứ:
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <span>Mức Trung Vị Chuẩn Theo Thứ</span>
+                <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded normal-case">
+                  Cố định từ đầu năm ({baselineRecords.length} ngày)
+                </span>
+                <span>:</span>
               </h3>
               <select
                 value={benchmarkMetricId}
