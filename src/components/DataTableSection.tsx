@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Table, ChevronLeft, ChevronRight, ArrowUpDown, Download, Search, Check, Calendar, TrendingUp, TrendingDown, Filter, Eye, AlertTriangle, Flame, ShieldAlert, Sparkles, LayoutGrid } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Table, ArrowUpDown, Download, Filter, Eye, AlertTriangle, Flame, Sparkles } from 'lucide-react';
 import { NgoiSaoRecord } from '../types';
 import { METRIC_PAIRS } from '../data/metricPairs';
 import { formatNumber, formatDateVN, formatRatio } from '../utils/formatters';
@@ -44,8 +44,8 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
     return {
       tier: 'extreme_up',
       label: 'Tăng bất thường',
-      badgeClass: 'bg-emerald-600 text-white font-bold shadow-xs',
-      cellBgClass: 'bg-emerald-50/70',
+      badgeClass: 'bg-emerald-600 text-white font-bold shadow-2xs',
+      cellBgClass: 'bg-emerald-50/80',
       textClass: 'text-emerald-950 font-bold',
       isAnomaly: diffPct >= threshold,
     };
@@ -56,9 +56,9 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
     return {
       tier: 'mild_up',
       label: 'Tăng nhẹ',
-      badgeClass: 'bg-emerald-50 text-emerald-700 font-medium',
+      badgeClass: 'bg-emerald-100 text-emerald-800 font-medium',
       cellBgClass: '',
-      textClass: 'text-slate-800',
+      textClass: 'text-slate-900',
       isAnomaly: false,
     };
   }
@@ -70,7 +70,7 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
       label: 'Ổn định',
       badgeClass: 'bg-slate-100 text-slate-500 font-normal',
       cellBgClass: '',
-      textClass: 'text-slate-600',
+      textClass: 'text-slate-700',
       isAnomaly: false,
     };
   }
@@ -80,9 +80,9 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
     return {
       tier: 'mild_down',
       label: 'Giảm nhẹ',
-      badgeClass: 'bg-rose-50 text-rose-600 font-medium',
+      badgeClass: 'bg-rose-100 text-rose-800 font-medium',
       cellBgClass: '',
-      textClass: 'text-slate-800',
+      textClass: 'text-slate-900',
       isAnomaly: false,
     };
   }
@@ -91,35 +91,19 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
   return {
     tier: 'extreme_down',
     label: 'Giảm bất thường',
-    badgeClass: 'bg-rose-600 text-white font-bold shadow-xs',
-    cellBgClass: 'bg-rose-50/70',
+    badgeClass: 'bg-rose-600 text-white font-bold shadow-2xs',
+    cellBgClass: 'bg-rose-50/80',
     textClass: 'text-rose-950 font-bold',
     isAnomaly: Math.abs(diffPct) >= threshold,
   };
 }
-
-// Cấu hình kích thước chuẩn cố định cho bảng dữ liệu
-const TABLE_STYLES = {
-  tableText: 'text-xs',
-  headerText: 'text-[11px]',
-  cellPadding: 'px-2.5 py-1.5',
-  headerPadding: 'px-2.5 py-2',
-  valFont: 'text-xs font-semibold',
-  badgeFont: 'text-[10px] px-1.5 py-0.5 min-w-[46px]',
-  dayColWidth: 'min-w-[105px] w-[105px]',
-  dowColWidth: 'min-w-[65px] w-[65px]',
-  dowLeft: 'left-[105px]',
-};
 
 export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, allSiteRecords, searchQuery }) => {
   const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only' | 'ratio_only'>('paired');
   const [displayMode, setDisplayMode] = useState<'both' | 'value_only' | 'diff_only'>('both');
   const [sortField, setSortField] = useState<string>('date_day');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const pageSize = 15; // Mặc định cố định 15 dòng theo yêu cầu
   const [selectedDowFilter, setSelectedDowFilter] = useState<string>('all');
-  const [showMedianBenchmarks, setShowMedianBenchmarks] = useState<boolean>(true);
   const [benchmarkMetricId, setBenchmarkMetricId] = useState<string>('total');
 
   // Dữ liệu chuẩn để tính trung vị benchmark: Cố định toàn bộ từ đầu năm cho site được chọn
@@ -140,8 +124,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
   // Anomaly detector state (threshold fixed at 20% according to specification)
   const anomalyThreshold = 20;
-  const [focusAnomaliesOnly, setFocusAnomaliesOnly] = useState<boolean>(false); // Dim normal cells, emphasize outliers
-  const [filterOutlierRowsOnly, setFilterOutlierRowsOnly] = useState<boolean>(false); // Filter only rows with at least 1 anomaly
+  const [focusAnomaliesOnly, setFocusAnomaliesOnly] = useState<boolean>(false);
+  const [filterOutlierRowsOnly, setFilterOutlierRowsOnly] = useState<boolean>(false);
 
   // Compute medians by day of the week across the FULL baseline dataset (fixed from beginning of year)
   const dowMedians = useMemo(() => {
@@ -232,7 +216,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
         const dowInfo = getDayOfWeekInfo(r.date_day);
         return (
           r.date_day.includes(q) ||
-          r.site.toLowerCase().includes(q) ||
+          (r.site || '').toLowerCase().includes(q) ||
           dowInfo.name.toLowerCase().includes(q) ||
           dowInfo.shortName.toLowerCase().includes(q)
         );
@@ -338,14 +322,15 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
     }
   };
 
-  // Helper to render metric cell with distinct anomaly visual hierarchy
+  // Helper to render metric cell with uniform height and precise alignment
   const renderCellWithDeviation = (
     val: number,
     medianVal: number,
     dowName: string,
     metricHeader: string,
     isUser: boolean = false,
-    isRatio: boolean = false
+    isRatio: boolean = false,
+    extraColClass: string = ''
   ) => {
     const diffPct = medianVal > 0 ? ((val - medianVal) / medianVal) * 100 : 0;
     const isUp = diffPct >= 0;
@@ -353,7 +338,6 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
     const diffFormatted = `${diffSign}${diffPct.toFixed(1)}%`;
     const anomaly = classifyAnomaly(diffPct, anomalyThreshold);
 
-    // In anomaly focus mode: dim regular cells so outliers instantly pop out!
     const isDimmed = focusAnomaliesOnly && !anomaly.isAnomaly;
     const dimClass = isDimmed ? 'opacity-30 hover:opacity-100 transition-opacity' : '';
 
@@ -364,36 +348,36 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
     if (displayMode === 'value_only') {
       return (
-        <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
-          <span className={`font-mono ${TABLE_STYLES.valFont} tabular-nums ${anomaly.textClass}`}>
-            {formattedVal}
-          </span>
+        <td className={`px-2 py-1.5 text-right cursor-help ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+          <div className="flex items-center justify-end h-9">
+            <span className={`font-mono text-xs tabular-nums ${anomaly.textClass}`}>
+              {formattedVal}
+            </span>
+          </div>
         </td>
       );
     }
 
     if (displayMode === 'diff_only') {
       return (
-        <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
-          <span
-            className={`inline-block font-mono ${TABLE_STYLES.badgeFont} tabular-nums rounded text-center ${anomaly.badgeClass}`}
-          >
-            {diffFormatted}
-          </span>
+        <td className={`px-2 py-1.5 text-right cursor-help ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+          <div className="flex items-center justify-end h-9">
+            <span className={`inline-block font-mono text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded w-13 text-center ${anomaly.badgeClass}`}>
+              {diffFormatted}
+            </span>
+          </div>
         </td>
       );
     }
 
-    // Both (default): formatted value on top, high-visibility color badge below (no icons, pure color gradient)
+    // Both (default): formatted value on top, high-visibility color badge below
     return (
-      <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help transition-colors ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
-        <div className="flex flex-col items-end justify-center leading-tight">
-          <span className={`font-mono ${TABLE_STYLES.valFont} tabular-nums ${anomaly.textClass}`}>
+      <td className={`px-2 py-1.5 text-right cursor-help transition-colors ${extraColClass} ${anomaly.cellBgClass} ${dimClass}`} title={tooltip}>
+        <div className="flex flex-col items-end justify-center h-9 leading-none">
+          <span className={`font-mono text-xs tabular-nums mb-0.5 ${anomaly.textClass}`}>
             {formattedVal}
           </span>
-          <span
-            className={`inline-block font-mono tabular-nums leading-tight mt-0.5 rounded text-center ${TABLE_STYLES.badgeFont} ${anomaly.badgeClass}`}
-          >
+          <span className={`inline-block font-mono text-[9.5px] tabular-nums font-semibold px-1 py-0.5 rounded w-12 text-center leading-tight ${anomaly.badgeClass}`}>
             {diffFormatted}
           </span>
         </div>
@@ -425,7 +409,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
       const dowInfo = getDayOfWeekInfo(r.date_day);
       const medianData = medianMap.get(dowInfo.dayIndex);
 
-      const rowCols = [r.date_day, dowInfo.name, r.site];
+      const rowCols = [r.date_day, dowInfo.name, r.site || ''];
 
       METRIC_PAIRS.forEach(p => {
         const pv = Number(r[p.pvKey]) || 0;
@@ -462,7 +446,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ngoisao_do_lech_bat_thuong_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `ngoisao_chi_tiet_do_lech_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -471,37 +455,50 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs mb-8"
+      className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs mb-8 space-y-4"
       id="data-table-section"
     >
       
-      {/* 1. Header & Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-slate-100">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Table className="w-4.5 h-4.5 text-rose-600" />
-            <span>Bảng Dữ Liệu Chi Tiết Theo Ngày</span>
-          </h2>
-          <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs flex items-center gap-1">
-            <Flame className="w-3 h-3 text-amber-300" />
-            <span>Nhận diện điểm tăng/giảm bất thường</span>
+      {/* 1. Header & Main Controls Bar */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+        
+        {/* Title & Badge */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+              <Table className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight leading-none">
+                Bảng Dữ Liệu Chi Tiết Theo Ngày
+              </h2>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Hiển thị <strong className="text-slate-800 font-semibold">{sortedRecords.length}</strong> ngày • So sánh với mức trung vị chuẩn theo thứ
+              </p>
+            </div>
+          </div>
+
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center gap-1.5">
+            <Flame className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Nhận diện tăng/giảm bất thường (±20%)</span>
           </span>
         </div>
 
-        {/* Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View Mode (Paired, PV only, User only, Ratio only) */}
-          <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs shadow-2xs">
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          
+          {/* View Mode Selector */}
+          <div className="inline-flex rounded-lg p-1 bg-slate-100 border border-slate-200/80 text-xs shadow-2xs">
             <button
-              onClick={() => { setViewMode('paired'); setCurrentPage(1); }}
-              className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
-                viewMode === 'paired' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => setViewMode('paired')}
+              className={`px-3 py-1.5 rounded-md font-semibold cursor-pointer transition-all ${
+                viewMode === 'paired' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Ghép Cặp
+              Ghép Cặp (PV & User)
             </button>
             <button
-              onClick={() => { setViewMode('pv_only'); setCurrentPage(1); }}
+              onClick={() => setViewMode('pv_only')}
               className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
                 viewMode === 'pv_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -509,7 +506,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
               Chỉ PV
             </button>
             <button
-              onClick={() => { setViewMode('u_only'); setCurrentPage(1); }}
+              onClick={() => setViewMode('u_only')}
               className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
                 viewMode === 'u_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -517,7 +514,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
               Chỉ User
             </button>
             <button
-              onClick={() => { setViewMode('ratio_only'); setCurrentPage(1); }}
+              onClick={() => setViewMode('ratio_only')}
               className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
                 viewMode === 'ratio_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -527,9 +524,9 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
           </div>
 
           {/* Display Mode Toggle */}
-          <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs shadow-2xs">
-            <span className="pl-2 pr-1 text-slate-400 font-medium text-[11px] flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5 text-slate-400" />
+          <div className="inline-flex items-center rounded-lg p-1 bg-slate-100 border border-slate-200/80 text-xs shadow-2xs">
+            <span className="pl-2 pr-1 text-slate-400">
+              <Eye className="w-3.5 h-3.5" />
             </span>
             <button
               onClick={() => setDisplayMode('both')}
@@ -557,9 +554,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
             </button>
           </div>
 
+          {/* Export CSV Button */}
           <button
             onClick={exportTableCsv}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs transition-colors"
             title="Tải toàn bộ bảng dữ liệu kèm phân loại điểm bất thường ra file CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -568,240 +566,225 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
         </div>
       </div>
 
-      {/* 2. Visual Anomaly Color Scale & Legend Bar */}
-      <div className="mb-3.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+      {/* 2. Integrated Benchmark & Anomaly Control Panel */}
+      <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-3.5 space-y-3">
         
-        {/* Scale Badges */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mr-1 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Màu độ lệch:</span>
-          </span>
-
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-600 text-white font-semibold text-[11px] shadow-2xs" title="Tăng từ +20% trở lên so với trung vị thứ">
-            ≥ +20% Tăng bất thường
-          </span>
-
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium text-[11px] border border-emerald-200/60" title="Tăng từ +5% đến +20%">
-            +5% ~ +20% Tăng nhẹ
-          </span>
-
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[11px] border border-slate-200/60" title="Biến động bình thường ±5%">
-            ±5% Ổn định
-          </span>
-
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-rose-50 text-rose-600 font-medium text-[11px] border border-rose-200/60" title="Giảm từ -5% đến -20%">
-            -5% ~ -20% Giảm nhẹ
-          </span>
-
-          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-rose-600 text-white font-semibold text-[11px] shadow-2xs" title="Giảm từ -20% trở xuống so với trung vị thứ">
-            ≤ -20% Giảm bất thường
-          </span>
-        </div>
-
-        {/* Anomaly Radar Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Toggle Focus Mode */}
-          <button
-            onClick={() => setFocusAnomaliesOnly(!focusAnomaliesOnly)}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all border flex items-center gap-1.5 ${
-              focusAnomaliesOnly
-                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
-            title="Làm mờ các ngày bình thường để các điểm bất thường nổi bật nhất"
-          >
-            <AlertTriangle className={`w-3.5 h-3.5 ${focusAnomaliesOnly ? 'text-white' : 'text-amber-500'}`} />
-            <span>Soi Bất Thường</span>
-          </button>
-
-          {/* Filter only rows with anomalies */}
-          <button
-            onClick={() => { setFilterOutlierRowsOnly(!filterOutlierRowsOnly); setCurrentPage(1); }}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all border flex items-center gap-1.5 ${
-              filterOutlierRowsOnly
-                ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
-            title="Chỉ giữ lại các ngày có ít nhất một chỉ số lệch vượt ngưỡng"
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span>Chỉ xem ngày có biến động ({anomalyStats.daysWithAnomaly} ngày)</span>
-          </button>
-        </div>
-
-      </div>
-
-      {/* 3. Benchmark Baseline: Day-of-Week Medians Strip for Selected Metric */}
-      {showMedianBenchmarks && (
-        <div className="mb-3.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl relative">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2 flex-wrap">
+        {/* Panel Top Row: Benchmark Metric Selector + Legend + Quick Outlier Toggles */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          
+          {/* Left: Benchmark Selector & Baseline Sample Size */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span>Mức Trung Vị Chuẩn Theo Thứ</span>
-                <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded normal-case">
-                  Cố định từ đầu năm ({baselineRecords.length} ngày)
-                </span>
-                <span>:</span>
-              </h3>
-              <select
-                value={benchmarkMetricId}
-                onChange={(e) => setBenchmarkMetricId(e.target.value)}
-                className="px-2 py-0.5 bg-white border border-slate-300 rounded text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500 cursor-pointer"
-              >
-                {METRIC_PAIRS.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.pvHeader} / {p.uHeader})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
-              <span className="text-emerald-700 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <strong>{anomalyStats.spikeCount}</strong> điểm tăng bất thường (≥ +20%)
-              </span>
-              <span className="text-rose-700 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <strong>{anomalyStats.dropCount}</strong> điểm giảm bất thường (≤ -20%)
-              </span>
-            </div>
+              <span>Mức Trung Vị Chuẩn Theo Thứ:</span>
+            </span>
+
+            <select
+              value={benchmarkMetricId}
+              onChange={(e) => setBenchmarkMetricId(e.target.value)}
+              className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-2xs"
+            >
+              {METRIC_PAIRS.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.order}. {p.name} ({p.pvHeader} / {p.uHeader})
+                </option>
+              ))}
+            </select>
+
+            <span className="text-[11px] font-medium text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-2xs">
+              Mẫu: <strong className="text-slate-900 font-semibold">{baselineRecords.length} ngày</strong> từ đầu năm
+            </span>
           </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                {dowMedians.map((m) => {
-                  const isSelected = selectedDowFilter === String(m.dayIndex);
-                  const pvMed = m.mediansByMetric[selectedBenchmarkPair.pvKey] || 0;
-                  const uMed = m.mediansByMetric[selectedBenchmarkPair.uKey] || 0;
-                  const ratioMed = m.mediansByMetric[`${selectedBenchmarkPair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
-                  const ratio = formatRatio(ratioMed);
-
-                  return (
-                    <button
-                      key={m.dayIndex}
-                      onClick={() => {
-                        setSelectedDowFilter(prev => prev === String(m.dayIndex) ? 'all' : String(m.dayIndex));
-                        setCurrentPage(1);
-                      }}
-                      className={`p-2 rounded-lg border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-400/30'
-                          : m.isWeekend
-                          ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-100/50'
-                          : 'bg-white border-slate-200 hover:bg-slate-100/70'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-bold ${
-                          m.isWeekend ? 'text-amber-800' : 'text-slate-800'
-                        }`}>
-                          {m.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {m.count} ngày
-                        </span>
-                      </div>
-
-                      <div className="space-y-0.5 text-[11px]">
-                        <div className="flex items-center justify-between text-rose-700 font-medium">
-                          <span>PV:</span>
-                          <span className="font-mono font-bold">{formatNumber(pvMed)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-blue-700 font-medium">
-                          <span>User:</span>
-                          <span className="font-mono font-bold">{formatNumber(uMed)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-slate-500 pt-0.5 border-t border-slate-200/60 text-[10px]">
-                          <span>PV/U:</span>
-                          <span className="font-mono font-semibold text-emerald-600">{ratio}</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Right: Anomaly Actions & Legend */}
+          <div className="flex items-center gap-2 flex-wrap">
+            
+            {/* Legend scale */}
+            <div className="hidden sm:flex items-center gap-1 text-[10.5px]">
+              <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-semibold">≥+20% Tăng</span>
+              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-medium">+5%~+20%</span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">±5% Chuẩn</span>
+              <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 font-medium">-5%~-20%</span>
+              <span className="px-1.5 py-0.5 rounded bg-rose-600 text-white font-semibold">≤-20% Giảm</span>
             </div>
-      )}
 
-      {/* 4. Day of Week Quick Filter Chips */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-3.5 text-xs">
-        <span className="text-slate-500 font-medium mr-1 flex items-center gap-1">
-          <Filter className="w-3 h-3 text-slate-400" />
-          <span>Lọc theo thứ:</span>
-        </span>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
 
-        <button
-          onClick={() => { setSelectedDowFilter('all'); setCurrentPage(1); }}
-          className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-            selectedDowFilter === 'all'
-              ? 'bg-slate-900 text-white font-semibold shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          Tất cả ({records.length} ngày)
-        </button>
-
-        <button
-          onClick={() => { setSelectedDowFilter('weekday'); setCurrentPage(1); }}
-          className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-            selectedDowFilter === 'weekday'
-              ? 'bg-blue-600 text-white font-semibold shadow-xs'
-              : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/60'
-          }`}
-        >
-          Ngày làm việc (T2 - T6)
-        </button>
-
-        <button
-          onClick={() => { setSelectedDowFilter('weekend'); setCurrentPage(1); }}
-          className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-            selectedDowFilter === 'weekend'
-              ? 'bg-amber-600 text-white font-semibold shadow-xs'
-              : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200/60'
-          }`}
-        >
-          Cuối tuần (T7 & CN)
-        </button>
-
-        <div className="h-4 w-px bg-slate-200 mx-1"></div>
-
-        {DAY_OF_WEEK_NAMES.map((d, idx) => {
-          const isCurrent = selectedDowFilter === String(idx);
-          return (
+            {/* Toggle Highlight Outliers */}
             <button
-              key={idx}
-              onClick={() => { setSelectedDowFilter(String(idx)); setCurrentPage(1); }}
-              className={`px-2 py-1 rounded-md font-medium text-[11px] transition-colors cursor-pointer ${
-                isCurrent
-                  ? 'bg-rose-600 text-white font-bold shadow-xs'
-                  : d.isWeekend
-                  ? 'bg-amber-100/70 text-amber-900 hover:bg-amber-200/70'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              onClick={() => setFocusAnomaliesOnly(!focusAnomaliesOnly)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all border flex items-center gap-1.5 ${
+                focusAnomaliesOnly
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
+              title="Làm mờ các ngày bình thường để điểm bất thường nổi bật"
             >
-              {d.shortName}
+              <AlertTriangle className={`w-3.5 h-3.5 ${focusAnomaliesOnly ? 'text-white' : 'text-amber-500'}`} />
+              <span>Soi Bất Thường</span>
             </button>
-          );
-        })}
-      </div>
 
-      {/* Scroll Navigation & Tips */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5 text-xs">
-        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-          <span>Hiển thị toàn bộ <strong>{sortedRecords.length}</strong> ngày • Lăn chuột trong bảng để cuộn dọc • Giữ <strong>Shift + Lăn chuột</strong> (hoặc lăn trên hàng tiêu đề) để cuộn ngang</span>
+            {/* Filter outlier rows */}
+            <button
+              onClick={() => setFilterOutlierRowsOnly(!filterOutlierRowsOnly)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all border flex items-center gap-1.5 ${
+                filterOutlierRowsOnly
+                  ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+              title="Chỉ hiển thị các ngày có biến động lệch chuẩn"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>Chỉ xem ngày biến động ({anomalyStats.daysWithAnomaly})</span>
+            </button>
+          </div>
         </div>
+
+        {/* 7-Day Interactive Benchmark Cards Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1">
+          {dowMedians.map((m) => {
+            const isSelected = selectedDowFilter === String(m.dayIndex);
+            const pvMed = m.mediansByMetric[selectedBenchmarkPair.pvKey] || 0;
+            const uMed = m.mediansByMetric[selectedBenchmarkPair.uKey] || 0;
+            const ratioMed = m.mediansByMetric[`${selectedBenchmarkPair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+            const ratio = formatRatio(ratioMed);
+
+            return (
+              <button
+                key={m.dayIndex}
+                onClick={() => {
+                  setSelectedDowFilter(prev => prev === String(m.dayIndex) ? 'all' : String(m.dayIndex));
+                }}
+                className={`p-2 rounded-xl border text-left transition-all cursor-pointer shadow-2xs ${
+                  isSelected
+                    ? 'bg-rose-50 border-rose-400 ring-2 ring-rose-400/30'
+                    : m.isWeekend
+                    ? 'bg-amber-50/50 border-amber-200/80 hover:bg-amber-100/60'
+                    : 'bg-white border-slate-200 hover:bg-slate-100/80'
+                }`}
+                title={`Bấm để chỉ xem dữ liệu các ngày ${m.name}`}
+              >
+                <div className="flex items-center justify-between mb-1 pb-1 border-b border-slate-100">
+                  <span className={`text-xs font-bold ${
+                    m.isWeekend ? 'text-amber-900' : 'text-slate-900'
+                  }`}>
+                    {m.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {m.count} ngày
+                  </span>
+                </div>
+
+                <div className="space-y-0.5 text-[11px]">
+                  <div className="flex items-center justify-between text-rose-700 font-medium">
+                    <span className="text-[10px] text-slate-400 font-sans">PV:</span>
+                    <span className="font-mono font-bold">{formatNumber(pvMed)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-blue-700 font-medium">
+                    <span className="text-[10px] text-slate-400 font-sans">User:</span>
+                    <span className="font-mono font-bold">{formatNumber(uMed)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-emerald-700 font-medium pt-0.5 border-t border-slate-100 text-[10px]">
+                    <span className="text-slate-400 font-sans">PV/U:</span>
+                    <span className="font-mono font-semibold">{ratio}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick Filter Bar for DOW */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+          <span className="text-slate-500 font-medium text-[11px] mr-1 flex items-center gap-1">
+            <Filter className="w-3 h-3 text-slate-400" />
+            <span>Lọc nhanh:</span>
+          </span>
+
+          <button
+            onClick={() => setSelectedDowFilter('all')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+              selectedDowFilter === 'all'
+                ? 'bg-slate-900 text-white font-semibold shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            Tất cả ({records.length} ngày)
+          </button>
+
+          <button
+            onClick={() => setSelectedDowFilter('weekday')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+              selectedDowFilter === 'weekday'
+                ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
+            }`}
+          >
+            Ngày làm việc (T2 - T6)
+          </button>
+
+          <button
+            onClick={() => setSelectedDowFilter('weekend')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+              selectedDowFilter === 'weekend'
+                ? 'bg-amber-600 text-white font-semibold shadow-xs'
+                : 'bg-white border border-amber-200 text-amber-800 hover:bg-amber-50'
+            }`}
+          >
+            Cuối tuần (T7 & CN)
+          </button>
+
+          {DAY_OF_WEEK_NAMES.map((d, idx) => {
+            const isCurrent = selectedDowFilter === String(idx);
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDowFilter(String(idx))}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                  isCurrent
+                    ? 'bg-rose-600 text-white font-bold shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {d.shortName}
+              </button>
+            );
+          })}
+        </div>
+
       </div>
 
-      {/* 5. Table Container */}
+      {/* 3. Main Data Table Container */}
       <div
         ref={tableContainerRef}
-        className="overflow-auto rounded-lg border border-slate-200 shadow-2xs relative scroll-smooth focus:outline-none max-h-[620px]"
+        className="overflow-auto rounded-xl border border-slate-200 shadow-2xs relative scroll-smooth focus:outline-none max-h-[640px] bg-white"
         tabIndex={0}
       >
-        <table className="w-full text-xs text-left border-collapse whitespace-nowrap">
+        <table className="w-full text-xs text-left border-collapse whitespace-nowrap table-fixed">
           
+          {/* Table Colgroup for Rock-Solid Uniform Widths */}
+          <colgroup>
+            <col className="w-[100px]" />
+            <col className="w-[68px]" />
+            <col className="w-[84px]" />
+            {viewMode === 'paired' && METRIC_PAIRS.map(p => (
+              <React.Fragment key={p.id}>
+                <col className="w-[84px]" />
+                <col className="w-[84px]" />
+                <col className="w-[74px]" />
+              </React.Fragment>
+            ))}
+            {viewMode === 'pv_only' && METRIC_PAIRS.map(p => (
+              <col key={p.id} className="w-[105px]" />
+            ))}
+            {viewMode === 'u_only' && METRIC_PAIRS.map(p => (
+              <col key={p.id} className="w-[105px]" />
+            ))}
+            {viewMode === 'ratio_only' && METRIC_PAIRS.map(p => (
+              <col key={p.id} className="w-[95px]" />
+            ))}
+          </colgroup>
+
           {/* Table Head */}
           <thead
             onWheel={handleHeaderWheel}
@@ -809,50 +792,59 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
           >
             {viewMode === 'paired' ? (
               <>
-                {/* Multi-level header */}
-                <tr className="border-b border-slate-200 bg-slate-100/95 text-[11px]">
-                  {/* Ngày */}
+                {/* Level 1 Header */}
+                <tr className="border-b border-slate-200 bg-slate-100 text-[11px]">
+                  {/* Ngày (Sticky Left 0) */}
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('date_day')}
-                    className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}
+                    className="p-2 cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none border-r border-slate-200 shadow-2xs"
                   >
-                    <div className="flex items-center gap-1">
-                      <span className={TABLE_STYLES.headerText}>Ngày</span>
+                    <div className="flex items-center gap-1 font-bold text-slate-800">
+                      <span>Ngày</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
 
-                  {/* THỨ */}
+                  {/* Thứ (Sticky Left 100px) */}
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('dow')}
-                    className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none bg-slate-100 z-50 sticky top-0 ${TABLE_STYLES.dowLeft} shadow-xs`}
-                    title="Bấm để sắp xếp theo thứ trong tuần"
+                    className="p-2 cursor-pointer hover:bg-slate-200/80 text-center select-none bg-slate-100 z-50 sticky top-0 left-[100px] border-r border-slate-200 shadow-2xs font-bold text-slate-800"
+                    title="Sắp xếp theo thứ"
                   >
-                    <div className="flex items-center justify-center gap-1">
-                      <span className={TABLE_STYLES.headerText}>Thứ</span>
+                    <div className="flex items-center justify-center gap-0.5">
+                      <span>Thứ</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
 
-                  <th rowSpan={2} className={`${TABLE_STYLES.headerPadding} text-slate-500 bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
+                  {/* Site */}
+                  <th rowSpan={2} className="p-2 text-slate-600 bg-slate-100 sticky top-0 z-30 font-semibold border-r border-slate-200">
+                    Site
+                  </th>
 
+                  {/* 16 Metric Pairs */}
                   {METRIC_PAIRS.map(p => (
-                    <th key={p.id} colSpan={3} className={`${TABLE_STYLES.headerPadding} text-center border-l border-slate-200 font-bold text-slate-800 bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}>
-                      {p.shortLabel}
+                    <th
+                      key={p.id}
+                      colSpan={3}
+                      className="p-2 text-center font-bold text-slate-800 bg-slate-100 sticky top-0 z-30 border-r border-slate-200 truncate"
+                      title={p.name}
+                    >
+                      <span className="text-[11px] font-bold text-slate-900">{p.shortLabel}</span>
                     </th>
                   ))}
                 </tr>
 
-                {/* Sub headers with individual sort options */}
-                <tr className={`${TABLE_STYLES.headerText} uppercase text-slate-500 bg-slate-50/95 border-b border-slate-200`}>
+                {/* Level 2 Subheaders */}
+                <tr className="text-[10.5px] uppercase font-semibold text-slate-600 bg-slate-50/95 border-b border-slate-200">
                   {METRIC_PAIRS.map(p => (
                     <React.Fragment key={p.id}>
                       <th
                         onClick={() => handleSort(p.pvKey as string)}
-                        className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
-                        title={`Sắp xếp theo ${p.pvHeader}`}
+                        className="py-1 px-1.5 text-rose-700 cursor-pointer hover:bg-slate-200/60 select-none text-right bg-slate-50"
+                        title={`Sắp xếp ${p.pvHeader}`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
                           <span>PV</span>
@@ -861,8 +853,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </th>
                       <th
                         onClick={() => handleSort(p.uKey as string)}
-                        className={`${TABLE_STYLES.headerPadding} text-blue-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
-                        title={`Sắp xếp theo ${p.uHeader}`}
+                        className="py-1 px-1.5 text-blue-700 cursor-pointer hover:bg-slate-200/60 select-none text-right bg-slate-50"
+                        title={`Sắp xếp ${p.uHeader}`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
                           <span>User</span>
@@ -871,8 +863,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </th>
                       <th
                         onClick={() => handleSort(`${p.id}_ratio`)}
-                        className={`${TABLE_STYLES.headerPadding} text-emerald-800 font-semibold cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
-                        title={`Sắp xếp theo tỷ lệ PV/U của ${p.shortLabel} (So với trung vị thứ)`}
+                        className="py-1 px-1.5 text-emerald-800 cursor-pointer hover:bg-slate-200/60 select-none text-right bg-slate-50 border-r border-slate-200"
+                        title={`Sắp xếp PV/U của ${p.shortLabel}`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
                           <span>PV/U</span>
@@ -884,25 +876,25 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                 </tr>
               </>
             ) : viewMode === 'pv_only' ? (
-              <tr>
-                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+              <tr className="border-b border-slate-200 bg-slate-100 text-[11px] font-bold text-slate-800">
+                <th onClick={() => handleSort('date_day')} className="p-2 cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none border-r border-slate-200 shadow-2xs">
                   <div className="flex items-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Ngày</span>
+                    <span>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Thứ</span>
+                <th onClick={() => handleSort('dow')} className="p-2 cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 left-[100px] bg-slate-100 z-50 border-r border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
+                <th className="p-2 text-slate-600 bg-slate-100 sticky top-0 z-30 font-semibold border-r border-slate-200">Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(p.pvKey as string)}
-                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
+                    className="p-2 text-rose-700 cursor-pointer hover:bg-slate-200/60 text-right select-none bg-slate-100 sticky top-0 z-30 border-r border-slate-200"
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.pvHeader}</span>
@@ -912,25 +904,25 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                 ))}
               </tr>
             ) : viewMode === 'u_only' ? (
-              <tr>
-                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+              <tr className="border-b border-slate-200 bg-slate-100 text-[11px] font-bold text-slate-800">
+                <th onClick={() => handleSort('date_day')} className="p-2 cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none border-r border-slate-200 shadow-2xs">
                   <div className="flex items-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Ngày</span>
+                    <span>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Thứ</span>
+                <th onClick={() => handleSort('dow')} className="p-2 cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 left-[100px] bg-slate-100 z-50 border-r border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
+                <th className="p-2 text-slate-600 bg-slate-100 sticky top-0 z-30 font-semibold border-r border-slate-200">Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(p.uKey as string)}
-                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-blue-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
+                    className="p-2 text-blue-700 cursor-pointer hover:bg-slate-200/60 text-right select-none bg-slate-100 sticky top-0 z-30 border-r border-slate-200"
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.uHeader}</span>
@@ -940,25 +932,25 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                 ))}
               </tr>
             ) : (
-              <tr>
-                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+              <tr className="border-b border-slate-200 bg-slate-100 text-[11px] font-bold text-slate-800">
+                <th onClick={() => handleSort('date_day')} className="p-2 cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none border-r border-slate-200 shadow-2xs">
                   <div className="flex items-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Ngày</span>
+                    <span>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className={TABLE_STYLES.headerText}>Thứ</span>
+                <th onClick={() => handleSort('dow')} className="p-2 cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 left-[100px] bg-slate-100 z-50 border-r border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
+                <th className="p-2 text-slate-600 bg-slate-100 sticky top-0 z-30 font-semibold border-r border-slate-200">Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(`${p.id}_ratio`)}
-                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-emerald-800 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
+                    className="p-2 text-emerald-800 cursor-pointer hover:bg-slate-200/60 text-right select-none bg-slate-100 sticky top-0 z-30 border-r border-slate-200"
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.shortLabel} PV/U</span>
@@ -974,7 +966,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
           <tbody className="divide-y divide-slate-100">
             {sortedRecords.length === 0 ? (
               <tr>
-                <td colSpan={52} className="px-4 py-8 text-center text-slate-400 font-sans">
+                <td colSpan={52} className="px-4 py-12 text-center text-slate-400 font-sans">
                   Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại.
                 </td>
               </tr>
@@ -988,17 +980,17 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                 return (
                   <tr
                     key={r.date_day}
-                    className={`transition-colors hover:bg-slate-50/80 ${
-                      isOutlierRow && focusAnomaliesOnly ? 'bg-amber-50/20' : ''
+                    className={`transition-colors hover:bg-slate-50 ${
+                      isOutlierRow && focusAnomaliesOnly ? 'bg-amber-50/30' : ''
                     }`}
                   >
                     
-                    {/* Ngày */}
-                    <td className={`${TABLE_STYLES.cellPadding} ${TABLE_STYLES.dayColWidth} font-medium text-slate-900 sticky left-0 bg-white shadow-xs z-20 whitespace-nowrap font-mono ${TABLE_STYLES.valFont}`}>
-                      <div className="flex items-center gap-1.5">
+                    {/* Ngày (Sticky Left 0) */}
+                    <td className="p-2 font-medium text-slate-900 sticky left-0 bg-white shadow-2xs z-20 whitespace-nowrap font-mono text-xs border-r border-slate-200">
+                      <div className="flex items-center gap-1.5 h-9">
                         {isOutlierRow && (
                           <span
-                            className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"
+                            className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
                             title="Ngày này có chỉ số biến động bất thường"
                           />
                         )}
@@ -1006,24 +998,29 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </div>
                     </td>
 
-                    {/* CỘT THỨ (2, 3, 4, 5, 6, 7, Chủ nhật) */}
-                    <td className={`${TABLE_STYLES.cellPadding} ${TABLE_STYLES.dowColWidth} text-center whitespace-nowrap sticky ${TABLE_STYLES.dowLeft} bg-white z-10 shadow-xs`}>
-                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${TABLE_STYLES.badgeFont} font-semibold border ${
-                        dowInfo.dayIndex === 0
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : dowInfo.dayIndex === 6
-                          ? 'bg-amber-50 text-amber-800 border-amber-200'
-                          : 'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                        {dowInfo.name}
-                      </span>
+                    {/* Thứ (Sticky Left 100px) */}
+                    <td className="p-2 text-center whitespace-nowrap sticky left-[100px] bg-white z-20 shadow-2xs border-r border-slate-200">
+                      <div className="flex items-center justify-center h-9">
+                        <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10.5px] font-semibold border ${
+                          dowInfo.dayIndex === 0
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : dowInfo.dayIndex === 6
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          {dowInfo.name}
+                        </span>
+                      </div>
                     </td>
 
-                    <td className={`${TABLE_STYLES.cellPadding} text-slate-400 font-sans ${TABLE_STYLES.headerText}`}>
-                      {r.site}
+                    {/* Site */}
+                    <td className="p-2 text-slate-500 font-sans text-[11px] border-r border-slate-200 truncate">
+                      <div className="flex items-center h-9">
+                        <span className="truncate">{r.site}</span>
+                      </div>
                     </td>
 
-                    {/* All paired columns with individual deviation & anomaly recognition */}
+                    {/* All paired columns */}
                     {viewMode === 'paired' && METRIC_PAIRS.map(p => {
                       const pv = Number(r[p.pvKey]) || 0;
                       const u = Number(r[p.uKey]) || 0;
@@ -1034,14 +1031,9 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
                       return (
                         <React.Fragment key={p.id}>
-                          {/* PV with individual anomaly styling */}
-                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false)}
-
-                          {/* User with individual anomaly styling */}
-                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false)}
-
-                          {/* Ratio with individual anomaly styling & median comparison */}
-                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true)}
+                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false, '')}
+                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false, '')}
+                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true, 'border-r border-slate-200')}
                         </React.Fragment>
                       );
                     })}
@@ -1052,7 +1044,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       const pvMed = medianData?.mediansByMetric[p.pvKey] || 0;
                       return (
                         <React.Fragment key={p.id}>
-                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false)}
+                          {renderCellWithDeviation(pv, pvMed, dowInfo.name, p.pvHeader, false, false, 'border-r border-slate-200')}
                         </React.Fragment>
                       );
                     })}
@@ -1063,7 +1055,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       const uMed = medianData?.mediansByMetric[p.uKey] || 0;
                       return (
                         <React.Fragment key={p.id}>
-                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false)}
+                          {renderCellWithDeviation(u, uMed, dowInfo.name, p.uHeader, true, false, 'border-r border-slate-200')}
                         </React.Fragment>
                       );
                     })}
@@ -1078,7 +1070,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       const ratioMed = medianData?.mediansByMetric[`${p.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
                       return (
                         <React.Fragment key={p.id}>
-                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true)}
+                          {renderCellWithDeviation(ratio, ratioMed, dowInfo.name, `${p.shortLabel} PV/U`, false, true, 'border-r border-slate-200')}
                         </React.Fragment>
                       );
                     })}
@@ -1092,12 +1084,16 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
         </table>
       </div>
 
-      {/* 6. Footer Summary */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+      {/* 4. Table Footer Tips */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-[11.5px] text-slate-500">
         <div className="flex items-center gap-2 text-slate-600 font-medium">
-          <span>Tổng số: <strong>{sortedRecords.length}</strong> ngày</span>
-          <span className="text-slate-300">•</span>
-          <span className="text-slate-500 text-[11px]">Đã hiển thị toàn bộ danh sách để cuộn xem</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Đang hiển thị <strong>{sortedRecords.length}</strong> ngày</span>
+          <span>•</span>
+          <span>Cố định cột Ngày và Thứ khi cuộn ngang</span>
+        </div>
+        <div className="text-slate-400 text-[11px]">
+          Mẹo: Giữ <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-300 font-mono text-[10px] text-slate-700">Shift + Lăn chuột</kbd> để cuộn ngang bảng
         </div>
       </div>
 
