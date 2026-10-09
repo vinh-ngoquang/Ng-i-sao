@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Table, ChevronLeft, ChevronRight, ArrowUpDown, Download, Search, Check, Calendar, TrendingUp, TrendingDown, Filter, SlidersHorizontal, Eye, AlertTriangle, Flame, ShieldAlert, Sparkles } from 'lucide-react';
+import { Table, ChevronLeft, ChevronRight, ArrowUpDown, Download, Search, Check, Calendar, TrendingUp, TrendingDown, Filter, Eye, AlertTriangle, Flame, ShieldAlert, Sparkles, LayoutGrid } from 'lucide-react';
 import { NgoiSaoRecord } from '../types';
 import { METRIC_PAIRS } from '../data/metricPairs';
 import { formatNumber, formatDateVN, formatRatio } from '../utils/formatters';
@@ -98,6 +98,19 @@ export function classifyAnomaly(diffPct: number, threshold: number = 20): Anomal
   };
 }
 
+// Cấu hình kích thước chuẩn cố định cho bảng dữ liệu
+const TABLE_STYLES = {
+  tableText: 'text-xs',
+  headerText: 'text-[11px]',
+  cellPadding: 'px-2.5 py-1.5',
+  headerPadding: 'px-2.5 py-2',
+  valFont: 'text-xs font-semibold',
+  badgeFont: 'text-[10px] px-1.5 py-0.5 min-w-[46px]',
+  dayColWidth: 'min-w-[105px] w-[105px]',
+  dowColWidth: 'min-w-[65px] w-[65px]',
+  dowLeft: 'left-[105px]',
+};
+
 export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, allSiteRecords, searchQuery }) => {
   const [viewMode, setViewMode] = useState<'paired' | 'pv_only' | 'u_only' | 'ratio_only'>('paired');
   const [displayMode, setDisplayMode] = useState<'both' | 'value_only' | 'diff_only'>('both');
@@ -113,52 +126,6 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
   const baselineRecords = useMemo(() => {
     return allSiteRecords && allSiteRecords.length > 0 ? allSiteRecords : records;
   }, [allSiteRecords, records]);
-
-  // Mức thu phóng cỡ chữ & ô dữ liệu ('normal': 100%, 'large': 115%, 'xl': 130%)
-  const [zoomLevel, setZoomLevel] = useState<'normal' | 'large' | 'xl'>('normal');
-
-  // Lớp CSS theo độ thu phóng
-  const zoomClasses = useMemo(() => {
-    switch (zoomLevel) {
-      case 'large':
-        return {
-          tableText: 'text-sm',
-          headerText: 'text-xs',
-          cellPadding: 'px-3 py-2.5',
-          headerPadding: 'px-3 py-2.5',
-          valFont: 'text-sm font-semibold',
-          badgeFont: 'text-xs px-2 py-0.5 min-w-[54px]',
-          dayColWidth: 'min-w-[115px] w-[115px]',
-          dowColWidth: 'min-w-[70px] w-[70px]',
-          dowLeft: 'left-[115px]',
-        };
-      case 'xl':
-        return {
-          tableText: 'text-base',
-          headerText: 'text-sm',
-          cellPadding: 'px-4 py-3',
-          headerPadding: 'px-4 py-3',
-          valFont: 'text-base font-bold',
-          badgeFont: 'text-sm px-2.5 py-1 min-w-[64px]',
-          dayColWidth: 'min-w-[130px] w-[130px]',
-          dowColWidth: 'min-w-[80px] w-[80px]',
-          dowLeft: 'left-[130px]',
-        };
-      case 'normal':
-      default:
-        return {
-          tableText: 'text-xs',
-          headerText: 'text-[11px]',
-          cellPadding: 'px-2.5 py-1.5',
-          headerPadding: 'px-2.5 py-2',
-          valFont: 'text-xs',
-          badgeFont: 'text-[10.5px] px-1.5 py-0.5 min-w-[48px]',
-          dayColWidth: 'min-w-[100px] w-[100px]',
-          dowColWidth: 'min-w-[60px] w-[60px]',
-          dowLeft: 'left-[100px]',
-        };
-    }
-  }, [zoomLevel]);
 
   // Ref container để cuộn chuột & cuộn ngang
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -397,8 +364,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
     if (displayMode === 'value_only') {
       return (
-        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
-          <span className={`font-mono ${zoomClasses.valFont} tabular-nums ${anomaly.textClass}`}>
+        <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
+          <span className={`font-mono ${TABLE_STYLES.valFont} tabular-nums ${anomaly.textClass}`}>
             {formattedVal}
           </span>
         </td>
@@ -407,9 +374,9 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
     if (displayMode === 'diff_only') {
       return (
-        <td className={`${zoomClasses.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
+        <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
           <span
-            className={`inline-block font-mono ${zoomClasses.badgeFont} tabular-nums rounded text-center ${anomaly.badgeClass}`}
+            className={`inline-block font-mono ${TABLE_STYLES.badgeFont} tabular-nums rounded text-center ${anomaly.badgeClass}`}
           >
             {diffFormatted}
           </span>
@@ -419,13 +386,13 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
 
     // Both (default): formatted value on top, high-visibility color badge below (no icons, pure color gradient)
     return (
-      <td className={`${zoomClasses.cellPadding} text-right cursor-help transition-colors ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
+      <td className={`${TABLE_STYLES.cellPadding} text-right cursor-help transition-colors ${anomaly.cellBgClass} ${dimClass} ${isRatio ? 'border-r border-slate-200/50' : ''}`} title={tooltip}>
         <div className="flex flex-col items-end justify-center leading-tight">
-          <span className={`font-mono ${zoomClasses.valFont} tabular-nums ${anomaly.textClass}`}>
+          <span className={`font-mono ${TABLE_STYLES.valFont} tabular-nums ${anomaly.textClass}`}>
             {formattedVal}
           </span>
           <span
-            className={`inline-block font-mono tabular-nums leading-tight mt-0.5 rounded text-center ${zoomClasses.badgeFont} ${anomaly.badgeClass}`}
+            className={`inline-block font-mono tabular-nums leading-tight mt-0.5 rounded text-center ${TABLE_STYLES.badgeFont} ${anomaly.badgeClass}`}
           >
             {diffFormatted}
           </span>
@@ -521,122 +488,85 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
           </span>
         </div>
 
-          {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            
-            {/* Zoom / Cỡ chữ Selector */}
-            <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs">
-              <span className="px-2 text-slate-500 font-medium text-[11px] flex items-center gap-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                <span>Cỡ chữ:</span>
-              </span>
-              <button
-                onClick={() => setZoomLevel('normal')}
-                className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  zoomLevel === 'normal' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Cỡ chữ và ô dữ liệu chuẩn (100%)"
-              >
-                Chuẩn
-              </button>
-              <button
-                onClick={() => setZoomLevel('large')}
-                className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  zoomLevel === 'large' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Phóng to cỡ chữ và giãn rộng các ô (115%)"
-              >
-                Lớn
-              </button>
-              <button
-                onClick={() => setZoomLevel('xl')}
-                className={`px-2 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  zoomLevel === 'xl' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Phóng cực lớn để soi rõ từng con số (130%)"
-              >
-                Cực lớn
-              </button>
-            </div>
-
-            {/* Display Mode Toggle */}
-            <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs">
-              <span className="px-2 text-slate-500 font-medium text-[11px] flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5 text-slate-400" />
-                <span>Hiển thị:</span>
-              </span>
-              <button
-                onClick={() => setDisplayMode('both')}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  displayMode === 'both' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Số & % Lệch
-              </button>
-              <button
-                onClick={() => setDisplayMode('diff_only')}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  displayMode === 'diff_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Chỉ % Lệch
-              </button>
-              <button
-                onClick={() => setDisplayMode('value_only')}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  displayMode === 'value_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Chỉ Số
-              </button>
-            </div>
-
-            {/* View Mode (Paired, PV only, User only, Ratio only) */}
-            <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs">
-              <button
-                onClick={() => { setViewMode('paired'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  viewMode === 'paired' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Ghép Cặp
-              </button>
-              <button
-                onClick={() => { setViewMode('pv_only'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  viewMode === 'pv_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Chỉ PV
-              </button>
-              <button
-                onClick={() => { setViewMode('u_only'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  viewMode === 'u_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Chỉ User
-              </button>
-              <button
-                onClick={() => { setViewMode('ratio_only'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-all ${
-                  viewMode === 'ratio_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Chỉ PV/U
-              </button>
-            </div>
-
+        {/* Action Toolbar */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode (Paired, PV only, User only, Ratio only) */}
+          <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs shadow-2xs">
             <button
-              onClick={exportTableCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs transition-colors"
-              title="Tải toàn bộ bảng dữ liệu kèm phân loại điểm bất thường ra file CSV"
+              onClick={() => { setViewMode('paired'); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                viewMode === 'paired' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Tải CSV</span>
+              Ghép Cặp
+            </button>
+            <button
+              onClick={() => { setViewMode('pv_only'); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                viewMode === 'pv_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chỉ PV
+            </button>
+            <button
+              onClick={() => { setViewMode('u_only'); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                viewMode === 'u_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chỉ User
+            </button>
+            <button
+              onClick={() => { setViewMode('ratio_only'); setCurrentPage(1); }}
+              className={`px-3 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                viewMode === 'ratio_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chỉ PV/U
             </button>
           </div>
+
+          {/* Display Mode Toggle */}
+          <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs shadow-2xs">
+            <span className="pl-2 pr-1 text-slate-400 font-medium text-[11px] flex items-center gap-1">
+              <Eye className="w-3.5 h-3.5 text-slate-400" />
+            </span>
+            <button
+              onClick={() => setDisplayMode('both')}
+              className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                displayMode === 'both' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Số & % Lệch
+            </button>
+            <button
+              onClick={() => setDisplayMode('diff_only')}
+              className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                displayMode === 'diff_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chỉ % Lệch
+            </button>
+            <button
+              onClick={() => setDisplayMode('value_only')}
+              className={`px-2.5 py-1.5 rounded-md font-medium cursor-pointer transition-all ${
+                displayMode === 'value_only' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chỉ Số
+            </button>
+          </div>
+
+          <button
+            onClick={exportTableCsv}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-white cursor-pointer shadow-xs transition-colors"
+            title="Tải toàn bộ bảng dữ liệu kèm phân loại điểm bất thường ra file CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Tải CSV</span>
+          </button>
         </div>
+      </div>
 
       {/* 2. Visual Anomaly Color Scale & Legend Bar */}
       <div className="mb-3.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
@@ -885,10 +815,10 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('date_day')}
-                    className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}
+                    className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}
                   >
                     <div className="flex items-center gap-1">
-                      <span className={zoomClasses.headerText}>Ngày</span>
+                      <span className={TABLE_STYLES.headerText}>Ngày</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
@@ -897,31 +827,31 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                   <th
                     rowSpan={2}
                     onClick={() => handleSort('dow')}
-                    className={`${zoomClasses.headerPadding} ${zoomClasses.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none bg-slate-100 z-50 sticky top-0 ${zoomClasses.dowLeft} shadow-xs`}
+                    className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none bg-slate-100 z-50 sticky top-0 ${TABLE_STYLES.dowLeft} shadow-xs`}
                     title="Bấm để sắp xếp theo thứ trong tuần"
                   >
                     <div className="flex items-center justify-center gap-1">
-                      <span className={zoomClasses.headerText}>Thứ</span>
+                      <span className={TABLE_STYLES.headerText}>Thứ</span>
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
                     </div>
                   </th>
 
-                  <th rowSpan={2} className={`${zoomClasses.headerPadding} text-slate-500 bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}>Site</th>
+                  <th rowSpan={2} className={`${TABLE_STYLES.headerPadding} text-slate-500 bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
 
                   {METRIC_PAIRS.map(p => (
-                    <th key={p.id} colSpan={3} className={`${zoomClasses.headerPadding} text-center border-l border-slate-200 font-bold text-slate-800 bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}>
+                    <th key={p.id} colSpan={3} className={`${TABLE_STYLES.headerPadding} text-center border-l border-slate-200 font-bold text-slate-800 bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}>
                       {p.shortLabel}
                     </th>
                   ))}
                 </tr>
 
                 {/* Sub headers with individual sort options */}
-                <tr className={`${zoomClasses.headerText} uppercase text-slate-500 bg-slate-50/95 border-b border-slate-200`}>
+                <tr className={`${TABLE_STYLES.headerText} uppercase text-slate-500 bg-slate-50/95 border-b border-slate-200`}>
                   {METRIC_PAIRS.map(p => (
                     <React.Fragment key={p.id}>
                       <th
                         onClick={() => handleSort(p.pvKey as string)}
-                        className={`${zoomClasses.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
+                        className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
                         title={`Sắp xếp theo ${p.pvHeader}`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
@@ -931,7 +861,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </th>
                       <th
                         onClick={() => handleSort(p.uKey as string)}
-                        className={`${zoomClasses.headerPadding} text-blue-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
+                        className={`${TABLE_STYLES.headerPadding} text-blue-700 cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
                         title={`Sắp xếp theo ${p.uHeader}`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
@@ -941,7 +871,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </th>
                       <th
                         onClick={() => handleSort(`${p.id}_ratio`)}
-                        className={`${zoomClasses.headerPadding} text-emerald-800 font-semibold cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
+                        className={`${TABLE_STYLES.headerPadding} text-emerald-800 font-semibold cursor-pointer hover:bg-slate-100 select-none text-right bg-slate-50`}
                         title={`Sắp xếp theo tỷ lệ PV/U của ${p.shortLabel} (So với trung vị thứ)`}
                       >
                         <div className="flex items-center justify-end gap-0.5">
@@ -955,24 +885,24 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
               </>
             ) : viewMode === 'pv_only' ? (
               <tr>
-                <th onClick={() => handleSort('date_day')} className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
                   <div className="flex items-center gap-1">
-                    <span className={zoomClasses.headerText}>Ngày</span>
+                    <span className={TABLE_STYLES.headerText}>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${zoomClasses.headerPadding} ${zoomClasses.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${zoomClasses.dowLeft} bg-slate-100 z-50 shadow-xs`}>
+                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
                   <div className="flex items-center justify-center gap-1">
-                    <span className={zoomClasses.headerText}>Thứ</span>
+                    <span className={TABLE_STYLES.headerText}>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${zoomClasses.headerPadding} sticky top-0 bg-slate-100 z-30 ${zoomClasses.headerText}`}>Site</th>
+                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(p.pvKey as string)}
-                    className={`${zoomClasses.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}
+                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-rose-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.pvHeader}</span>
@@ -983,24 +913,24 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
               </tr>
             ) : viewMode === 'u_only' ? (
               <tr>
-                <th onClick={() => handleSort('date_day')} className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
                   <div className="flex items-center gap-1">
-                    <span className={zoomClasses.headerText}>Ngày</span>
+                    <span className={TABLE_STYLES.headerText}>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${zoomClasses.headerPadding} ${zoomClasses.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${zoomClasses.dowLeft} bg-slate-100 z-50 shadow-xs`}>
+                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
                   <div className="flex items-center justify-center gap-1">
-                    <span className={zoomClasses.headerText}>Thứ</span>
+                    <span className={TABLE_STYLES.headerText}>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${zoomClasses.headerPadding} sticky top-0 bg-slate-100 z-30 ${zoomClasses.headerText}`}>Site</th>
+                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(p.uKey as string)}
-                    className={`${zoomClasses.headerPadding} border-l border-slate-200 text-blue-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}
+                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-blue-700 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.uHeader}</span>
@@ -1011,24 +941,24 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
               </tr>
             ) : (
               <tr>
-                <th onClick={() => handleSort('date_day')} className={`${zoomClasses.headerPadding} ${zoomClasses.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
+                <th onClick={() => handleSort('date_day')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dayColWidth} cursor-pointer hover:bg-slate-200/80 sticky top-0 left-0 bg-slate-100 z-50 select-none shadow-xs`}>
                   <div className="flex items-center gap-1">
-                    <span className={zoomClasses.headerText}>Ngày</span>
+                    <span className={TABLE_STYLES.headerText}>Ngày</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th onClick={() => handleSort('dow')} className={`${zoomClasses.headerPadding} ${zoomClasses.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${zoomClasses.dowLeft} bg-slate-100 z-50 shadow-xs`}>
+                <th onClick={() => handleSort('dow')} className={`${TABLE_STYLES.headerPadding} ${TABLE_STYLES.dowColWidth} cursor-pointer hover:bg-slate-200/80 text-center select-none sticky top-0 ${TABLE_STYLES.dowLeft} bg-slate-100 z-50 shadow-xs`}>
                   <div className="flex items-center justify-center gap-1">
-                    <span className={zoomClasses.headerText}>Thứ</span>
+                    <span className={TABLE_STYLES.headerText}>Thứ</span>
                     <ArrowUpDown className="w-3 h-3 text-slate-400" />
                   </div>
                 </th>
-                <th className={`${zoomClasses.headerPadding} sticky top-0 bg-slate-100 z-30 ${zoomClasses.headerText}`}>Site</th>
+                <th className={`${TABLE_STYLES.headerPadding} sticky top-0 bg-slate-100 z-30 ${TABLE_STYLES.headerText}`}>Site</th>
                 {METRIC_PAIRS.map(p => (
                   <th
                     key={p.id}
                     onClick={() => handleSort(`${p.id}_ratio`)}
-                    className={`${zoomClasses.headerPadding} border-l border-slate-200 text-emerald-800 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${zoomClasses.headerText}`}
+                    className={`${TABLE_STYLES.headerPadding} border-l border-slate-200 text-emerald-800 cursor-pointer hover:bg-slate-100 text-right select-none bg-slate-100 sticky top-0 z-30 ${TABLE_STYLES.headerText}`}
                   >
                     <div className="flex items-center justify-end gap-1">
                       <span>{p.shortLabel} PV/U</span>
@@ -1064,7 +994,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                   >
                     
                     {/* Ngày */}
-                    <td className={`${zoomClasses.cellPadding} ${zoomClasses.dayColWidth} font-medium text-slate-900 sticky left-0 bg-white shadow-xs z-20 whitespace-nowrap font-mono ${zoomClasses.valFont}`}>
+                    <td className={`${TABLE_STYLES.cellPadding} ${TABLE_STYLES.dayColWidth} font-medium text-slate-900 sticky left-0 bg-white shadow-xs z-20 whitespace-nowrap font-mono ${TABLE_STYLES.valFont}`}>
                       <div className="flex items-center gap-1.5">
                         {isOutlierRow && (
                           <span
@@ -1077,8 +1007,8 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                     </td>
 
                     {/* CỘT THỨ (2, 3, 4, 5, 6, 7, Chủ nhật) */}
-                    <td className={`${zoomClasses.cellPadding} ${zoomClasses.dowColWidth} text-center whitespace-nowrap sticky ${zoomClasses.dowLeft} bg-white z-10 shadow-xs`}>
-                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${zoomClasses.badgeFont} font-semibold border ${
+                    <td className={`${TABLE_STYLES.cellPadding} ${TABLE_STYLES.dowColWidth} text-center whitespace-nowrap sticky ${TABLE_STYLES.dowLeft} bg-white z-10 shadow-xs`}>
+                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${TABLE_STYLES.badgeFont} font-semibold border ${
                         dowInfo.dayIndex === 0
                           ? 'bg-rose-50 text-rose-700 border-rose-200'
                           : dowInfo.dayIndex === 6
@@ -1089,7 +1019,7 @@ export const DataTableSection: React.FC<DataTableSectionProps> = ({ records, all
                       </span>
                     </td>
 
-                    <td className={`${zoomClasses.cellPadding} text-slate-400 font-sans ${zoomClasses.headerText}`}>
+                    <td className={`${TABLE_STYLES.cellPadding} text-slate-400 font-sans ${TABLE_STYLES.headerText}`}>
                       {r.site}
                     </td>
 
