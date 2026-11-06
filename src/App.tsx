@@ -336,7 +336,7 @@ export default function App() {
       />
 
       {/* Body Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex-1 w-full">
+      <main className="w-full px-2 sm:px-3 lg:px-4 pt-4 flex-1">
         {/* Filter & Period Controls */}
         <FilterBar
           filter={filter}
@@ -387,8 +387,8 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="mt-auto border-t border-slate-200 py-5 text-center text-xs text-slate-500">
+        <div className="w-full px-2 sm:px-3 lg:px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p>
             © 2026 Dashboard Theo Dõi Chỉ Số Site Ngôi Sao. Tự động cập nhật từ Google Sheets & lưu vào file{' '}
             <code className="bg-slate-200 text-slate-800 px-1 py-0.5 rounded font-mono">DATA_NGOISAO.md</code>
