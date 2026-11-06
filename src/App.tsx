@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
-import { KpiSummaryCards } from './components/KpiSummaryCards';
 import { TimeSeriesChart } from './components/TimeSeriesChart';
 import { DataTableSection } from './components/DataTableSection';
 import { MarkdownViewerModal } from './components/MarkdownViewerModal';
 import { SyncStatusModal } from './components/SyncStatusModal';
 import { NgoiSaoRecord, FilterState } from './types';
-import { filterRecords, computeMetricAggregates, computeOverallSummary, getAvailableSites } from './utils/dataProcessing';
+import { filterRecords, getAvailableSites } from './utils/dataProcessing';
 import { formatDateVN } from './utils/formatters';
 import { INITIAL_RECORDS, INITIAL_LAST_UPDATED } from './data/initialData';
 import { fetchLiveGoogleSheetsData, parseTsvToRecords } from './utils/googleSheetsSync';
@@ -270,16 +269,6 @@ export default function App() {
     return filterRecords(records, filter);
   }, [records, filter]);
 
-  // Aggregates for all 16 metric pairs
-  const aggregates = useMemo(() => {
-    return computeMetricAggregates(filteredRecords);
-  }, [filteredRecords]);
-
-  // Overall KPI summary
-  const overallSummary = useMemo(() => {
-    return computeOverallSummary(filteredRecords);
-  }, [filteredRecords]);
-
   const dateRangeText = useMemo(() => {
     if (filteredRecords.length === 0) return 'Không có dữ liệu';
     const first = filteredRecords[0].date_day;
@@ -359,17 +348,14 @@ export default function App() {
           availableSites={availableSites}
         />
 
-        {/* 1. Overall KPI Highlights */}
-        <KpiSummaryCards summary={overallSummary} aggregates={aggregates} />
-
-        {/* 2. Interactive Time Series Trend (Dual Axis Pageview & User) */}
+        {/* 1. Interactive Time Series Trend (Dual Axis Pageview & User) */}
         <TimeSeriesChart
           records={filteredRecords}
           activePairId={filter.activeMetricId}
           onSelectPair={(id) => setFilter((prev) => ({ ...prev, activeMetricId: id }))}
         />
 
-        {/* 3. Detailed Data Table (Paired view, PV view, User view, Day of Week & Deviation vs Median for every metric) */}
+        {/* 2. Detailed Data Table (Paired view, PV view, User view, Day of Week & Deviation vs Median for every metric) */}
         <DataTableSection
           records={filteredRecords}
           allSiteRecords={recordsForActiveSite}
