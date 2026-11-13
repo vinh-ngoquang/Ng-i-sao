@@ -1,122 +1,131 @@
+import fs from 'fs';
+import path from 'path';
 import nodemailer from 'nodemailer';
 
 const GOOGLE_SHEETS_TSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQksM6-RzffQI5Va9Bx6X9oiii5Hd_BYZDjaRSNnHOuhke-FlQr9kuYOTXuuoA2SkZPyvrCF2_c6dkC/pub?gid=1633653606&single=true&output=tsv';
 
+const KEY_MAP = [
+  'date_day',
+  'site',
+  'pageviews',
+  'p_ex_direct',
+  'p_ex_google',
+  'p_ex_social',
+  'p_ex_referer',
+  'p_in_home',
+  'p_in_folder',
+  'p_in_detail',
+  'p_in_other',
+  'p_do',
+  'p_ov',
+  'p_unknown',
+  'p_mobile',
+  'p_pc',
+  'p_app',
+  'p_tablet',
+  'user',
+  'u_ex_direct',
+  'u_ex_google',
+  'u_ex_social',
+  'u_ex_referer',
+  'u_in_home',
+  'u_in_folder',
+  'u_in_detail',
+  'u_in_other',
+  'u_do',
+  'u_ov',
+  'u_unknown',
+  'u_mobile',
+  'u_pc',
+  'u_app',
+  'u_tablet',
+];
+
 const METRIC_PAIRS = [
-  { id: 'total', label: '1. Tổng Toàn Site', category: 'overview', pvKey: 'total_pageviews', userKey: 'total_users' },
-  { id: 'mobile', label: '2. Mobile', category: 'device', pvKey: 'mobile_pageviews', userKey: 'mobile_users' },
-  { id: 'pc', label: '3. PC / Desktop', category: 'device', pvKey: 'pc_pageviews', userKey: 'pc_users' },
-  { id: 'tablet', label: '4. Tablet', category: 'device', pvKey: 'tablet_pageviews', userKey: 'tablet_users' },
-  { id: 'ex_direct', label: '5. Ex-Direct', category: 'external_source', pvKey: 'ex_direct_pageviews', userKey: 'ex_direct_users' },
-  { id: 'ex_google', label: '6. Ex-Google (SEO)', category: 'external_source', pvKey: 'ex_google_pageviews', userKey: 'ex_google_users' },
-  { id: 'ex_social', label: '7. Ex-Social', category: 'external_source', pvKey: 'ex_social_pageviews', userKey: 'ex_social_users' },
-  { id: 'ex_referral', label: '8. Ex-Referral', category: 'external_source', pvKey: 'ex_referral_pageviews', userKey: 'ex_referral_users' },
-  { id: 'ex_other', label: '9. Ex-Other', category: 'external_source', pvKey: 'ex_other_pageviews', userKey: 'ex_other_users' },
-  { id: 'in_home', label: '10. In-Home (Trang chủ)', category: 'internal_section', pvKey: 'in_home_pageviews', userKey: 'in_home_users' },
-  { id: 'in_cur_folder', label: '11. In-Cur-Folder (Chuyên mục)', category: 'internal_section', pvKey: 'in_cur_folder_pageviews', userKey: 'in_cur_folder_users' },
-  { id: 'in_oth_folder', label: '12. In-Oth-Folder (Chuyên mục khác)', category: 'internal_section', pvKey: 'in_oth_folder_pageviews', userKey: 'in_oth_folder_users' },
-  { id: 'in_cur_detail', label: '13. In-Cur-Detail (Bài cùng mục)', category: 'internal_section', pvKey: 'in_cur_detail_pageviews', userKey: 'in_cur_detail_users' },
-  { id: 'in_oth_detail', label: '14. In-Oth-Detail (Bài mục khác)', category: 'internal_section', pvKey: 'in_oth_detail_pageviews', userKey: 'in_oth_detail_users' },
-  { id: 'in_vnexpress', label: '15. In-VnExpress (Chéo từ VNE)', category: 'internal_section', pvKey: 'in_vnexpress_pageviews', userKey: 'in_vnexpress_users' },
-  { id: 'in_other', label: '16. In-Other (Nội bộ khác)', category: 'internal_section', pvKey: 'in_other_pageviews', userKey: 'in_other_users' },
+  { id: 'total', shortLabel: 'Total', categoryLabel: 'Tổng quan', pvKey: 'pageviews', uKey: 'user', color: '#e11d48' },
+  { id: 'ex_direct', shortLabel: 'Ex-Direct', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_direct', uKey: 'u_ex_direct', color: '#2563eb' },
+  { id: 'ex_google', shortLabel: 'Ex-Google', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_google', uKey: 'u_ex_google', color: '#059669' },
+  { id: 'ex_social', shortLabel: 'Ex-Social', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_social', uKey: 'u_ex_social', color: '#7c3aed' },
+  { id: 'ex_referer', shortLabel: 'Ex-Referer', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_referer', uKey: 'u_ex_referer', color: '#d97706' },
+  { id: 'in_home', shortLabel: 'In-Home', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_home', uKey: 'u_in_home', color: '#0284c7' },
+  { id: 'in_folder', shortLabel: 'In-Folder', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_folder', uKey: 'u_in_folder', color: '#0891b2' },
+  { id: 'in_detail', shortLabel: 'In-Detail', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_detail', uKey: 'u_in_detail', color: '#db2777' },
+  { id: 'in_other', shortLabel: 'In-Other', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_other', uKey: 'u_in_other', color: '#64748b' },
+  { id: 'do', shortLabel: 'DO', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_do', uKey: 'u_do', color: '#ea580c' },
+  { id: 'ov', shortLabel: 'OV', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_ov', uKey: 'u_ov', color: '#4f46e5' },
+  { id: 'unknown', shortLabel: 'Unknown', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_unknown', uKey: 'u_unknown', color: '#94a3b8' },
+  { id: 'mobile', shortLabel: 'Mobile', categoryLabel: 'Thiết Bị', pvKey: 'p_mobile', uKey: 'u_mobile', color: '#10b981' },
+  { id: 'pc', shortLabel: 'PC', categoryLabel: 'Thiết Bị', pvKey: 'p_pc', uKey: 'u_pc', color: '#3b82f6' },
+  { id: 'app', shortLabel: 'App', categoryLabel: 'Thiết Bị', pvKey: 'p_app', uKey: 'u_app', color: '#8b5cf6' },
+  { id: 'tablet', shortLabel: 'Tablet', categoryLabel: 'Thiết Bị', pvKey: 'p_tablet', uKey: 'u_tablet', color: '#f59e0b' },
 ];
 
-const CATEGORY_LABELS = {
-  overview: 'TỔNG QUAN TOÀN SITE',
-  device: 'NHÓM THIẾT BỊ (DEVICE)',
-  external_source: 'NGUỒN NGOÀI (EXTERNAL TRAFFIC)',
-  internal_section: 'LUÂN CHUYỂN NỘI BỘ (INTERNAL TRAFFIC)',
-};
+function parseTsvToRecords(tsvText) {
+  const lines = tsvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
 
-const SITE_CONFIGS = [
-  { id: 'Ngôi sao', title: 'Ngôi Sao (ngoisao.vnexpress.net)', color: '#e11d48', bgLight: '#fff1f2', border: '#fecdd3' },
-  { id: 'VnExpress', title: 'VnExpress (vnexpress.net)', color: '#b91c1c', bgLight: '#fef2f2', border: '#fecaca' },
-  { id: 'English', title: 'VnExpress International (e.vnexpress.net)', color: '#1d4ed8', bgLight: '#eff6ff', border: '#bfdbfe' },
-];
-
-function cleanNumber(val) {
-  if (val === undefined || val === null || val === '') return 0;
-  const cleaned = String(val).replace(/,/g, '').trim();
-  const num = Number(cleaned);
-  return isNaN(num) ? 0 : num;
-}
-
-async function fetchLiveGoogleSheets() {
-  const url = `${GOOGLE_SHEETS_TSV_URL}&_t=${Date.now()}`;
-  const response = await fetch(url, {
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Google Sheets trả về HTTP ${response.status}`);
-  }
-  const tsvText = await response.text();
-  const lines = tsvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const firstLine = lines[0];
+  const sep = firstLine.includes('\t') ? '\t' : firstLine.includes(',') ? ',' : ';';
+  const isHeader = !/^\d{4}-\d{2}-\d{2}/.test(firstLine);
+  const startIndex = isHeader ? 1 : 0;
   const records = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split('\t');
-    if (cols.length < 34) continue;
-    const dateStr = cols[1]?.trim();
-    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
-
-    records.push({
-      site: cols[0]?.trim() || 'Ngôi sao',
-      date_day: dateStr,
-      total_pageviews: cleanNumber(cols[2]),
-      total_users: cleanNumber(cols[3]),
-      mobile_pageviews: cleanNumber(cols[4]),
-      mobile_users: cleanNumber(cols[5]),
-      pc_pageviews: cleanNumber(cols[6]),
-      pc_users: cleanNumber(cols[7]),
-      tablet_pageviews: cleanNumber(cols[8]),
-      tablet_users: cleanNumber(cols[9]),
-      ex_direct_pageviews: cleanNumber(cols[10]),
-      ex_direct_users: cleanNumber(cols[11]),
-      ex_google_pageviews: cleanNumber(cols[12]),
-      ex_google_users: cleanNumber(cols[13]),
-      ex_social_pageviews: cleanNumber(cols[14]),
-      ex_social_users: cleanNumber(cols[15]),
-      ex_referral_pageviews: cleanNumber(cols[16]),
-      ex_referral_users: cleanNumber(cols[17]),
-      ex_other_pageviews: cleanNumber(cols[18]),
-      ex_other_users: cleanNumber(cols[19]),
-      in_home_pageviews: cleanNumber(cols[20]),
-      in_home_users: cleanNumber(cols[21]),
-      in_cur_folder_pageviews: cleanNumber(cols[22]),
-      in_cur_folder_users: cleanNumber(cols[23]),
-      in_oth_folder_pageviews: cleanNumber(cols[24]),
-      in_oth_folder_users: cleanNumber(cols[25]),
-      in_cur_detail_pageviews: cleanNumber(cols[26]),
-      in_cur_detail_users: cleanNumber(cols[27]),
-      in_oth_detail_pageviews: cleanNumber(cols[28]),
-      in_oth_detail_users: cleanNumber(cols[29]),
-      in_vnexpress_pageviews: cleanNumber(cols[30]),
-      in_vnexpress_users: cleanNumber(cols[31]),
-      in_other_pageviews: cleanNumber(cols[32]),
-      in_other_users: cleanNumber(cols[33]),
+  for (let i = startIndex; i < lines.length; i++) {
+    const parts = lines[i].split(sep).map((p) => p.trim().replace(/^["']|["']$/g, ''));
+    if (parts.length < 3) continue;
+    const obj = {};
+    KEY_MAP.forEach((k, idx) => {
+      if (idx === 0 || idx === 1) {
+        obj[k] = parts[idx] ? parts[idx].trim() : idx === 1 ? 'Ngôi sao' : '';
+      } else {
+        const raw = parts[idx] ? parts[idx].replace(/,/g, '') : '0';
+        obj[k] = Number(raw) || 0;
+      }
     });
+    if (obj.date_day && /^\d{4}-\d{2}-\d{2}/.test(obj.date_day)) {
+      records.push(obj);
+    }
   }
-  records.sort((a, b) => a.date_day.localeCompare(b.date_day));
   return records;
 }
 
-function formatNumberFull(val) {
+async function fetchLiveGoogleSheets() {
+  try {
+    const url = `${GOOGLE_SHEETS_TSV_URL}&_t=${Date.now()}`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Google Sheets trả về HTTP ${response.status}`);
+    }
+    const tsvText = await response.text();
+    const records = parseTsvToRecords(tsvText);
+    if (records.length > 0) return records;
+  } catch (err) {
+    console.warn('⚠️ Không tải được trực tiếp từ Google Sheets, dùng dữ liệu dự phòng initialData.json:', err.message);
+  }
+
+  // Fallback to local initialData.json
+  const jsonPath = path.resolve(process.cwd(), 'src/data/initialData.json');
+  if (fs.existsSync(jsonPath)) {
+    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    return Array.isArray(raw) ? raw : raw.records || [];
+  }
+  return [];
+}
+
+function formatNumber(val) {
   if (val === null || val === undefined || isNaN(val)) return '0';
   return new Intl.NumberFormat('vi-VN').format(Math.round(val));
 }
 
-function formatCompactVN(val) {
-  if (val === null || val === undefined || isNaN(val)) return '0';
-  const abs = Math.abs(val);
-  const sign = val < 0 ? '-' : '';
-  if (abs >= 1_000_000_000) return `${sign}${(abs / 1_000_000_000).toFixed(2)} B`;
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(2)} Tr`;
-  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(1)} K`;
-  return `${sign}${Math.round(abs)}`;
+function formatRatio(val) {
+  if (val === null || val === undefined || isNaN(val)) return '0.00';
+  return Number(val).toFixed(2);
 }
 
 function formatDateVN(dateStr) {
@@ -128,261 +137,281 @@ function formatDateVN(dateStr) {
 
 function getDayOfWeekInfo(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  const dow = dt.getDay();
-  const labels = {
-    0: 'Chủ Nhật',
-    1: 'Thứ Hai',
-    2: 'Thứ Ba',
-    3: 'Thứ Tư',
-    4: 'Thứ Năm',
-    5: 'Thứ Sáu',
-    6: 'Thứ Bảy',
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const dayIndex = dt.getDay();
+  const names = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const shortNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  return {
+    dayIndex,
+    name: names[dayIndex] || '',
+    shortName: shortNames[dayIndex] || '',
   };
-  return { dow, label: labels[dow] || '' };
 }
 
 function getMedian(arr) {
-  if (arr.length === 0) return 0;
+  if (!arr.length) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function computeDowMediansForSite(siteRecords, dow) {
-  const sameDowRecords = siteRecords.filter((r) => getDayOfWeekInfo(r.date_day).dow === dow);
-  const medians = {};
-  for (const pair of METRIC_PAIRS) {
-    medians[pair.pvKey] = getMedian(sameDowRecords.map((r) => Number(r[pair.pvKey]) || 0));
-    medians[pair.userKey] = getMedian(sameDowRecords.map((r) => Number(r[pair.userKey]) || 0));
-  }
-  return { medians, count: sameDowRecords.length };
+function computeDowMediansForSite(siteRecords, dayIndex) {
+  const sameDow = siteRecords.filter((r) => getDayOfWeekInfo(r.date_day).dayIndex === dayIndex);
+  const mediansByMetric = {};
+  METRIC_PAIRS.forEach((pair) => {
+    mediansByMetric[pair.pvKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.pvKey]) || 0)));
+    mediansByMetric[pair.uKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.uKey]) || 0)));
+    mediansByMetric[`${pair.id}_ratio`] = getMedian(
+      sameDow.map((r) => {
+        const pv = Number(r[pair.pvKey]) || 0;
+        const u = Number(r[pair.uKey]) || 0;
+        return u > 0 ? pv / u : 0;
+      })
+    );
+  });
+  return { count: sameDow.length, mediansByMetric };
 }
 
-function getBadgeInlineStyle(pctDiff) {
-  if (pctDiff >= 20) {
-    return 'background-color:#059669;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;display:inline-block;';
+function getInlineBadgeStyle(diffPct) {
+  if (isNaN(diffPct) || !isFinite(diffPct)) {
+    return { bg: '#f1f5f9', text: '#64748b', cellBg: '#ffffff', label: 'Ổn định' };
   }
-  if (pctDiff >= 5) {
-    return 'background-color:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:1px 5px;border-radius:4px;font-weight:600;font-size:11px;display:inline-block;';
+  if (diffPct >= 20) {
+    return { bg: '#059669', text: '#ffffff', cellBg: '#ecfdf5', label: 'Tăng bất thường' };
   }
-  if (pctDiff <= -20) {
-    return 'background-color:#e11d48;color:#ffffff;padding:2px 6px;border-radius:4px;font-weight:700;font-size:11px;display:inline-block;';
+  if (diffPct >= 5) {
+    return { bg: '#d1fae5', text: '#065f46', cellBg: '#ffffff', label: 'Tăng nhẹ' };
   }
-  if (pctDiff <= -5) {
-    return 'background-color:#fff1f2;color:#be123c;border:1px solid #fecdd3;padding:1px 5px;border-radius:4px;font-weight:600;font-size:11px;display:inline-block;';
+  if (diffPct > -5) {
+    return { bg: '#f1f5f9', text: '#64748b', cellBg: '#ffffff', label: 'Ổn định' };
   }
-  return 'background-color:#f1f5f9;color:#475569;padding:1px 5px;border-radius:4px;font-weight:500;font-size:11px;display:inline-block;';
+  if (diffPct > -20) {
+    return { bg: '#ffe4e6', text: '#9f1239', cellBg: '#ffffff', label: 'Giảm nhẹ' };
+  }
+  return { bg: '#e11d48', text: '#ffffff', cellBg: '#fff1f2', label: 'Giảm bất thường' };
 }
 
-function formatDiffCell(actual, median) {
-  const absDiff = actual - median;
-  const pctDiff = median > 0 ? ((actual - median) / median) * 100 : 0;
-  const pctSign = pctDiff > 0 ? '+' : '';
-  const absSign = absDiff > 0 ? '+' : '';
-  const badgeStyle = getBadgeInlineStyle(pctDiff);
-  const absColor = absDiff > 0 ? '#047857' : absDiff < 0 ? '#be123c' : '#64748b';
-
-  return `
-    <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:3px;">
-      ${formatNumberFull(actual)}
-    </div>
-    <div style="margin-bottom:2px;">
-      <span style="${badgeStyle}">${pctSign}${pctDiff.toFixed(1)}%</span>
-      <span style="font-size:11px;font-weight:600;color:${absColor};margin-left:4px;">(${absSign}${formatCompactVN(absDiff)})</span>
-    </div>
-    <div style="font-size:10px;color:#64748b;">
-      TV: ${formatNumberFull(median)}
-    </div>
-  `;
+function getSiteBrandColors(siteName) {
+  const lower = siteName.toLowerCase();
+  if (lower === 'vnexpress') {
+    return { primary: '#b91c1c', lightBg: '#fef2f2', border: '#fecaca', shortCode: 'VNE' };
+  }
+  if (lower === 'english') {
+    return { primary: '#1d4ed8', lightBg: '#eff6ff', border: '#bfdbfe', shortCode: 'ENG' };
+  }
+  return { primary: '#e11d48', lightBg: '#fff1f2', border: '#fecdd3', shortCode: 'NS' };
 }
 
-function generateDailyEmailReport(allRecords, targetDate) {
-  const sortedDates = Array.from(new Set(allRecords.map((r) => r.date_day))).sort();
-  const reportDate = targetDate && sortedDates.includes(targetDate) ? targetDate : sortedDates[sortedDates.length - 1];
-  const minDate = sortedDates[0] || reportDate;
-  const dowInfo = getDayOfWeekInfo(reportDate);
-  const dateVN = formatDateVN(reportDate);
+function generateDailyEmailReport(records, requestedDate) {
+  const allDates = Array.from(new Set(records.map((r) => r.date_day))).sort();
+  const targetDate = requestedDate && allDates.includes(requestedDate) ? requestedDate : allDates[allDates.length - 1];
+  const formattedDate = formatDateVN(targetDate);
+  const dowInfo = getDayOfWeekInfo(targetDate);
 
-  const subject = `[Báo Cáo Traffic Hàng Ngày] ${dowInfo.label}, ${dateVN} — Ngôi Sao • VnExpress • English`;
+  const preferredOrder = ['Ngôi sao', 'VnExpress', 'English'];
+  const existingSites = Array.from(new Set(records.map((r) => (r.site || 'Ngôi sao').trim())));
+  const orderedSites = [
+    ...preferredOrder.filter((s) => existingSites.some((es) => es.toLowerCase() === s.toLowerCase())),
+    ...existingSites.filter((es) => !preferredOrder.some((s) => s.toLowerCase() === es.toLowerCase())),
+  ];
 
   let siteSectionsHtml = '';
-  let plainTextLines = [
-    `BÁO CÁO DỮ LIỆU CHI TIẾT HÀNG NGÀY — ${dowInfo.label.toUpperCase()}, ${dateVN}`,
-    `So sánh với Trung Vị Cùng Thứ (${dowInfo.label}) tính từ đầu năm (${formatDateVN(minDate)} đến ${dateVN})`,
+  const plainTextLines = [
+    `BÁO CÁO DỮ LIỆU HÀNG NGÀY — ${dowInfo.name.toUpperCase()}, ${formattedDate}`,
+    `So sánh với Trung vị chuẩn theo ${dowInfo.name} tính cố định từ đầu năm`,
     '====================================================================',
     '',
   ];
 
-  for (const siteCfg of SITE_CONFIGS) {
-    const siteRecords = allRecords
-      .filter((r) => (r.site || '').toLowerCase() === siteCfg.id.toLowerCase())
+  orderedSites.forEach((siteName) => {
+    const siteRecords = records
+      .filter((r) => (r.site || 'Ngôi sao').trim().toLowerCase() === siteName.toLowerCase() && r.date_day <= targetDate)
       .sort((a, b) => a.date_day.localeCompare(b.date_day));
 
-    const latestRecord = siteRecords.find((r) => r.date_day === reportDate) || siteRecords[siteRecords.length - 1];
-    if (!latestRecord) continue;
+    const dayRecord = siteRecords.find((r) => r.date_day === targetDate) || siteRecords[siteRecords.length - 1];
+    if (!dayRecord) return;
 
-    const recordDow = getDayOfWeekInfo(latestRecord.date_day);
-    const { medians, count: sameDowCount } = computeDowMediansForSite(siteRecords, recordDow.dow);
+    const recordDow = getDayOfWeekInfo(dayRecord.date_day);
+    const medianData = computeDowMediansForSite(siteRecords, recordDow.dayIndex);
+    const brand = getSiteBrandColors(siteName);
 
-    const totalPV = latestRecord.total_pageviews;
-    const totalUsers = latestRecord.total_users;
-    const medPV = medians.total_pageviews || 0;
-    const medUsers = medians.total_users || 0;
-    const pvPct = medPV > 0 ? ((totalPV - medPV) / medPV) * 100 : 0;
-    const userPct = medUsers > 0 ? ((totalUsers - medUsers) / medUsers) * 100 : 0;
-    const pvPerUser = totalUsers > 0 ? (totalPV / totalUsers).toFixed(2) : '0.00';
+    let spikeCount = 0;
+    let dropCount = 0;
+    let rowsHtml = '';
 
-    plainTextLines.push(`■ SITE: ${siteCfg.title} (Ngày ${formatDateVN(latestRecord.date_day)})`);
-    plainTextLines.push(
-      `  - Tổng Pageviews: ${formatNumberFull(totalPV)} (${pvPct >= 0 ? '+' : ''}${pvPct.toFixed(1)}% | ${totalPV - medPV >= 0 ? '+' : ''}${formatNumberFull(totalPV - medPV)} vs Trung vị ${recordDow.label}: ${formatNumberFull(medPV)})`
-    );
-    plainTextLines.push(
-      `  - Tổng Users:     ${formatNumberFull(totalUsers)} (${userPct >= 0 ? '+' : ''}${userPct.toFixed(1)}% | ${totalUsers - medUsers >= 0 ? '+' : ''}${formatNumberFull(totalUsers - medUsers)} vs Trung vị ${recordDow.label}: ${formatNumberFull(medUsers)})`
-    );
+    METRIC_PAIRS.forEach((pair, idx) => {
+      const pv = Number(dayRecord[pair.pvKey]) || 0;
+      const u = Number(dayRecord[pair.uKey]) || 0;
+      const ratio = u > 0 ? pv / u : 0;
+
+      const pvMed = medianData.mediansByMetric[pair.pvKey] || 0;
+      const uMed = medianData.mediansByMetric[pair.uKey] || 0;
+      const rMed = medianData.mediansByMetric[`${pair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+
+      const pvDiffPct = pvMed > 0 ? ((pv - pvMed) / pvMed) * 100 : 0;
+      const uDiffPct = uMed > 0 ? ((u - uMed) / uMed) * 100 : 0;
+      const rDiffPct = rMed > 0 ? ((ratio - rMed) / rMed) * 100 : 0;
+
+      const pvDiffAbs = pv - pvMed;
+      const uDiffAbs = u - uMed;
+      const rDiffAbs = ratio - rMed;
+
+      if (pvDiffPct >= 20) spikeCount++;
+      else if (pvDiffPct <= -20) dropCount++;
+      if (uDiffPct >= 20) spikeCount++;
+      else if (uDiffPct <= -20) dropCount++;
+      if (rDiffPct >= 20) spikeCount++;
+      else if (rDiffPct <= -20) dropCount++;
+
+      const pvStyle = getInlineBadgeStyle(pvDiffPct);
+      const uStyle = getInlineBadgeStyle(uDiffPct);
+      const rStyle = getInlineBadgeStyle(rDiffPct);
+
+      const pvPctStr = `${pvDiffPct >= 0 ? '+' : ''}${pvDiffPct.toFixed(1)}%`;
+      const uPctStr = `${uDiffPct >= 0 ? '+' : ''}${uDiffPct.toFixed(1)}%`;
+      const rPctStr = `${rDiffPct >= 0 ? '+' : ''}${rDiffPct.toFixed(1)}%`;
+
+      const pvAbsStr = `${pvDiffAbs >= 0 ? '+' : ''}${formatNumber(pvDiffAbs)}`;
+      const uAbsStr = `${uDiffAbs >= 0 ? '+' : ''}${formatNumber(uDiffAbs)}`;
+      const rAbsStr = `${rDiffAbs >= 0 ? '+' : ''}${rDiffAbs.toFixed(2)}`;
+
+      const isTotalRow = pair.id === 'total';
+      const rowBg = isTotalRow ? '#f8fafc' : idx % 2 === 0 ? '#ffffff' : '#fcfcfd';
+
+      const pvBg = pvStyle.cellBg !== '#ffffff' ? `background:${pvStyle.cellBg};` : '';
+      const uBg = uStyle.cellBg !== '#ffffff' ? `background:${uStyle.cellBg};` : '';
+      const rBg = rStyle.cellBg !== '#ffffff' ? `background:${rStyle.cellBg};` : '';
+
+      rowsHtml += `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
+        `<td style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0;white-space:nowrap">` +
+          `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
+          `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(pvMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${pvBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(uMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${uBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatRatio(rMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${rBg}white-space:nowrap">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
+        `</td>` +
+      `</tr>`;
+    });
+
+    const totalPV = Number(dayRecord.pageviews) || 0;
+    const totalUser = Number(dayRecord.user) || 0;
+    const totalRatio = totalUser > 0 ? totalPV / totalUser : 0;
+
+    plainTextLines.push(`■ Site: ${siteName} (${formatDateVN(dayRecord.date_day)})`);
+    plainTextLines.push(`  - Tổng Pageviews: ${formatNumber(totalPV)} | Tổng Users: ${formatNumber(totalUser)} | PV/User: ${formatRatio(totalRatio)}`);
     plainTextLines.push('');
 
-    let rowsHtml = '';
-    let currentCategory = '';
-
-    for (const pair of METRIC_PAIRS) {
-      if (pair.category !== currentCategory) {
-        currentCategory = pair.category;
-        rowsHtml += `
-          <tr>
-            <td colspan="4" style="background-color:#f8fafc;padding:7px 12px;font-size:11px;font-weight:700;color:#475569;letter-spacing:0.04em;border-bottom:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">
-              ${CATEGORY_LABELS[currentCategory] || currentCategory}
-            </td>
-          </tr>
-        `;
-      }
-
-      const pvActual = Number(latestRecord[pair.pvKey]) || 0;
-      const pvMedian = medians[pair.pvKey] || 0;
-      const userActual = Number(latestRecord[pair.userKey]) || 0;
-      const userMedian = medians[pair.userKey] || 0;
-      const ratioActual = userActual > 0 ? (pvActual / userActual).toFixed(2) : '0.00';
-      const ratioMedian = userMedian > 0 ? (pvMedian / userMedian).toFixed(2) : '0.00';
-
-      rowsHtml += `
-        <tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:600;color:#1e293b;vertical-align:top;">
-            ${pair.label}
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;background-color:#fffdf9;">
-            ${formatDiffCell(pvActual, pvMedian)}
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;">
-            ${formatDiffCell(userActual, userMedian)}
-          </td>
-          <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;font-size:12px;color:#334155;">
-            <div style="font-weight:700;color:#0f172a;">${ratioActual}</div>
-            <div style="font-size:10px;color:#64748b;margin-top:2px;">TV: ${ratioMedian}</div>
-          </td>
-        </tr>
-      `;
-    }
-
     siteSectionsHtml += `
-      <div style="margin-bottom:28px;border:1px solid ${siteCfg.border};border-radius:10px;overflow:hidden;background-color:#ffffff;">
-        <div style="background-color:${siteCfg.color};color:#ffffff;padding:12px 16px;">
-          <div style="font-size:16px;font-weight:700;">${siteCfg.title}</div>
-          <div style="font-size:12px;opacity:0.92;margin-top:2px;">
-            Ngày dữ liệu: <strong>${recordDow.label}, ${formatDateVN(latestRecord.date_day)}</strong> • Đối chiếu Trung vị của <strong>${sameDowCount} ngày ${recordDow.label}</strong> từ đầu năm (${formatDateVN(siteRecords[0]?.date_day || minDate)} – ${formatDateVN(latestRecord.date_day)})
+      <div style="margin-bottom:24px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden">
+        <div style="background:${brand.lightBg};border-bottom:2px solid ${brand.border};padding:12px 16px">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td>
+                <span style="display:inline-block;padding:3px 9px;border-radius:6px;background:${brand.primary};color:#fff;font-size:12px;font-weight:800;margin-right:8px">${brand.shortCode}</span>
+                <span style="font-size:16px;font-weight:800;color:#0f172a">Site: ${siteName}</span>
+                <span style="font-size:12px;color:#475569;margin-left:8px">• Ngày <strong>${formatDateVN(dayRecord.date_day)}</strong> (${recordDow.name})</span>
+              </td>
+              <td align="right" style="font-size:11px;color:#475569">
+                Benchmark cố định từ đầu năm: <strong>${siteRecords.length} ngày</strong> (${medianData.count} ngày ${recordDow.name})
+              </td>
+            </tr>
+          </table>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed ${brand.border};font-size:12px;color:#334155">
+            <span style="margin-right:14px">Tổng PV: <strong style="color:#e11d48;font-family:monospace">${formatNumber(totalPV)}</strong></span>
+            <span style="margin-right:14px">Tổng User: <strong style="color:#2563eb;font-family:monospace">${formatNumber(totalUser)}</strong></span>
+            <span style="margin-right:14px">PV/User: <strong style="color:#059669;font-family:monospace">${formatRatio(totalRatio)}</strong></span>
+            <span style="margin-right:12px;color:#047857">▲ Tăng bất thường (≥+20%): <strong>${spikeCount}</strong> chỉ số</span>
+            <span style="color:#be123c">▼ Giảm bất thường (≤-20%): <strong>${dropCount}</strong> chỉ số</span>
           </div>
         </div>
+        <div style="overflow-x:auto">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
+            <thead>
+              <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1;font-size:11px;font-weight:700;color:#334155;text-transform:uppercase">
+                <th rowspan="2" align="left" style="padding:7px 9px;border-right:1px solid #cbd5e1">Cặp Chỉ Số</th>
+                <th colspan="2" align="center" style="padding:5px 8px;color:#be123c;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Pageviews (PV)</th>
+                <th colspan="2" align="center" style="padding:5px 8px;color:#1d4ed8;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Users (Độc Giả)</th>
+                <th colspan="2" align="center" style="padding:5px 8px;color:#047857;border-bottom:1px solid #cbd5e1">Tỷ Lệ PV / User</th>
+              </tr>
+              <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">
+                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">% & Tuyệt Đối</th>
+                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">% & Tuyệt Đối</th>
+                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px">% & Tuyệt Đối</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+  });
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background-color:${siteCfg.bgLight};border-bottom:1px solid ${siteCfg.border};">
-          <tr>
-            <td width="34%" style="padding:10px 14px;border-right:1px solid ${siteCfg.border};">
-              <div style="font-size:11px;color:#475569;font-weight:600;">TỔNG PAGEVIEWS</div>
-              <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px;">${formatNumberFull(totalPV)}</div>
-              <div style="font-size:11px;color:${pvPct >= 0 ? '#047857' : '#be123c'};font-weight:600;margin-top:2px;">
-                ${pvPct >= 0 ? '+' : ''}${pvPct.toFixed(1)}% (${totalPV - medPV >= 0 ? '+' : ''}${formatCompactVN(totalPV - medPV)}) vs TV
-              </div>
-            </td>
-            <td width="34%" style="padding:10px 14px;border-right:1px solid ${siteCfg.border};">
-              <div style="font-size:11px;color:#475569;font-weight:600;">TỔNG USERS</div>
-              <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px;">${formatNumberFull(totalUsers)}</div>
-              <div style="font-size:11px;color:${userPct >= 0 ? '#047857' : '#be123c'};font-weight:600;margin-top:2px;">
-                ${userPct >= 0 ? '+' : ''}${userPct.toFixed(1)}% (${totalUsers - medUsers >= 0 ? '+' : ''}${formatCompactVN(totalUsers - medUsers)}) vs TV
-              </div>
-            </td>
-            <td width="32%" style="padding:10px 14px;">
-              <div style="font-size:11px;color:#475569;font-weight:600;">ĐỘ SÂU ĐỌC (PV/USER)</div>
-              <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px;">${pvPerUser}</div>
-              <div style="font-size:11px;color:#64748b;margin-top:2px;">
-                TV ${recordDow.label}: ${medUsers > 0 ? (medPV / medUsers).toFixed(2) : '0.00'}
-              </div>
-            </td>
-          </tr>
-        </table>
+  const subject = `[Báo Cáo Hàng Ngày] Pageviews & Users (${orderedSites.join(' • ')}) - Ngày ${formattedDate} (${dowInfo.name})`;
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
-          <thead>
-            <tr style="background-color:#f1f5f9;">
-              <th align="left" width="32%" style="padding:9px 12px;font-size:11px;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;text-transform:uppercase;">Chỉ Số / Phân Nhóm</th>
-              <th align="right" width="28%" style="padding:9px 12px;font-size:11px;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;text-transform:uppercase;">Pageviews (Lệch % & Số)</th>
-              <th align="right" width="28%" style="padding:9px 12px;font-size:11px;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;text-transform:uppercase;">Users (Lệch % & Số)</th>
-              <th align="right" width="12%" style="padding:9px 12px;font-size:11px;font-weight:700;color:#334155;border-bottom:2px solid #cbd5e1;text-transform:uppercase;">PV/U</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${subject}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
-  <div style="max-width:820px;margin:0 auto;padding:20px 12px;">
-    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#ffffff;padding:20px 22px;border-radius:12px;margin-bottom:20px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:700;">
-        BÁO CÁO TỰ ĐỘNG HÀNG NGÀY • BẢNG DỮ LIỆU CHI TIẾT THEO NGÀY
-      </div>
-      <div style="font-size:20px;font-weight:800;margin-top:4px;">
-        Thống Kê Pageviews & Users — ${dowInfo.label}, ${dateVN}
-      </div>
-      <div style="font-size:12px;color:#cbd5e1;margin-top:6px;">
-        Chuẩn đối chiếu: <strong>Trung vị cùng thứ (${dowInfo.label}) cố định từ đầu năm (${formatDateVN(minDate)} đến ${dateVN})</strong>
-      </div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${subject}</title></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a">
+  <div style="max-width:960px;margin:0 auto;padding:16px 10px">
+    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:16px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#fda4af;font-weight:700;margin-bottom:4px">BÁO CÁO TỰ ĐỘNG HÀNG NGÀY • GOOGLE SHEETS LIVE</div>
+      <h1 style="margin:0 0 6px 0;font-size:19px;font-weight:800;color:#fff">Thống Kê Chi Tiết Pageviews & Users — Ngày ${formattedDate} (${dowInfo.name})</h1>
+      <p style="margin:0;font-size:12px;color:#cbd5e1;line-height:1.5">Dữ liệu ngày mới nhất của 3 site (<strong>${orderedSites.join(', ')}</strong>) đối chiếu với <strong>Mức Trung Vị Chuẩn Theo ${dowInfo.name}</strong> (tính cố định từ đầu năm 01/01/2026). Bao gồm Số thực tế, % Lệch và Số lệch tuyệt đối.</p>
     </div>
-
+    <div style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:11px;color:#475569">
+      <strong style="color:#0f172a;margin-right:8px">Chú giải màu độ lệch vs Trung vị Thứ:</strong>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#059669;color:#fff;font-weight:700;margin-right:6px">≥ +20% Tăng bất thường</span>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#d1fae5;color:#065f46;font-weight:600;margin-right:6px">+5% ~ +20% Tăng nhẹ</span>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;margin-right:6px">±5% Ổn định</span>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#ffe4e6;color:#9f1239;font-weight:600;margin-right:6px">-5% ~ -20% Giảm nhẹ</span>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#e11d48;color:#fff;font-weight:700">≤ -20% Giảm bất thường</span>
+    </div>
     ${siteSectionsHtml}
-
-    <div style="text-align:center;font-size:11px;color:#64748b;padding:12px 0;">
-      Email được gửi tự động từ hệ thống <strong>Dashboard Thống Kê Pageviews & Users</strong> • Nguồn dữ liệu: Google Sheets Live.
+    <div style="text-align:center;font-size:11px;color:#64748b;padding:10px 0;border-top:1px solid #cbd5e1">
+      Email được tạo tự động từ hệ thống <strong>Dashboard Thống Kê Pageviews & Users</strong> • Cập nhật lúc ${new Date().toLocaleString('vi-VN')}
     </div>
   </div>
 </body>
-</html>
-  `.trim();
+</html>`.replace(/\n\s+/g, '\n').trim();
 
   return {
+    targetDate,
+    formattedDate,
     subject,
     html,
     text: plainTextLines.join('\n'),
-    reportDate,
   };
 }
 
 async function main() {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const emailTo = process.env.EMAIL_TO || smtpUser;
-  const targetDate = process.env.REPORT_DATE || undefined;
+  const isDryRun = process.argv.includes('--dry-run');
+  const smtpUser = (process.env.SMTP_USER || '').trim();
+  const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+  const emailTo = (process.env.EMAIL_TO || smtpUser).trim();
+  const targetDate = (process.env.REPORT_DATE || '').trim() || undefined;
 
-  if (!smtpUser || !smtpPass) {
-    console.error('❌ Thiếu biến môi trường SMTP_USER hoặc SMTP_PASS.');
+  if (!isDryRun && (!smtpUser || !smtpPass)) {
+    console.error('❌ Thiếu biến môi trường SMTP_USER hoặc SMTP_PASS trong GitHub Secrets.');
     process.exit(1);
   }
 
@@ -390,8 +419,20 @@ async function main() {
   const records = await fetchLiveGoogleSheets();
   console.log(`✅ Đã tải ${records.length} dòng dữ liệu.`);
 
+  if (records.length === 0) {
+    console.error('❌ Không có dữ liệu để tạo báo cáo.');
+    process.exit(1);
+  }
+
   const report = generateDailyEmailReport(records, targetDate);
-  console.log(`📧 Đang gửi báo cáo ngày ${report.reportDate} tới: ${emailTo}`);
+  console.log(`📊 Đã tạo báo cáo: ${report.subject} (Độ dài HTML: ${report.html.length} ký tự)`);
+
+  if (isDryRun) {
+    console.log('✅ Dry-run hoàn tất thành công!');
+    return;
+  }
+
+  console.log(`📧 Đang gửi báo cáo ngày ${report.formattedDate} (${report.targetDate}) tới: ${emailTo}`);
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -404,7 +445,7 @@ async function main() {
   });
 
   const info = await transporter.sendMail({
-    from: `"Dashboard Traffic Daily" <${smtpUser}>`,
+    from: `"Dashboard Pageviews & Users" <${smtpUser}>`,
     to: emailTo,
     subject: report.subject,
     text: report.text,

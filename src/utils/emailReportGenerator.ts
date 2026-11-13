@@ -176,57 +176,37 @@ export function generateDailyEmailReport(
       const isTotalRow = pair.id === 'total';
       const rowBg = isTotalRow ? '#f8fafc' : idx % 2 === 0 ? '#ffffff' : '#fcfcfd';
 
-      rowsHtml += `
-        <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 8px 10px; font-size: 12px; font-weight: ${isTotalRow ? '700' : '600'}; color: #0f172a; border-right: 1px solid #e2e8f0; white-space: nowrap;">
-            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${pair.color}; margin-right: 6px;"></span>
-            ${pair.shortLabel}
-            <div style="font-size: 10px; font-weight: 400; color: #64748b; margin-left: 14px;">${pair.categoryLabel}</div>
-          </td>
+      const pvBg = pvStyle.cellBg !== '#ffffff' ? `background:${pvStyle.cellBg};` : '';
+      const uBg = uStyle.cellBg !== '#ffffff' ? `background:${uStyle.cellBg};` : '';
+      const rBg = rStyle.cellBg !== '#ffffff' ? `background:${rStyle.cellBg};` : '';
 
-          <!-- PAGEVIEWS -->
-          <td style="padding: 8px 10px; text-align: right; background-color: ${pvStyle.cellBg}; font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap;">
-            ${formatNumber(pv)}
-            <div style="font-size: 10px; font-weight: 400; color: #64748b;">TV ${dowInfo.shortName}: ${formatNumber(pvMed)}</div>
-          </td>
-          <td style="padding: 8px 8px; text-align: right; background-color: ${pvStyle.cellBg}; white-space: nowrap; border-right: 1px solid #e2e8f0;">
-            <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: ${pvStyle.bg}; color: ${pvStyle.text}; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 700;">
-              ${pvPctStr}
-            </span>
-            <div style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 600; color: ${pvDiffAbs >= 0 ? '#047857' : '#be123c'}; margin-top: 2px;">
-              ${pvAbsStr}
-            </div>
-          </td>
-
-          <!-- USERS -->
-          <td style="padding: 8px 10px; text-align: right; background-color: ${uStyle.cellBg}; font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap;">
-            ${formatNumber(u)}
-            <div style="font-size: 10px; font-weight: 400; color: #64748b;">TV ${dowInfo.shortName}: ${formatNumber(uMed)}</div>
-          </td>
-          <td style="padding: 8px 8px; text-align: right; background-color: ${uStyle.cellBg}; white-space: nowrap; border-right: 1px solid #e2e8f0;">
-            <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: ${uStyle.bg}; color: ${uStyle.text}; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 700;">
-              ${uPctStr}
-            </span>
-            <div style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 600; color: ${uDiffAbs >= 0 ? '#047857' : '#be123c'}; margin-top: 2px;">
-              ${uAbsStr}
-            </div>
-          </td>
-
-          <!-- PV / USER RATIO -->
-          <td style="padding: 8px 10px; text-align: right; background-color: ${rStyle.cellBg}; font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: 700; color: #0f172a; white-space: nowrap;">
-            ${formatRatio(ratio)}
-            <div style="font-size: 10px; font-weight: 400; color: #64748b;">TV ${dowInfo.shortName}: ${formatRatio(rMed)}</div>
-          </td>
-          <td style="padding: 8px 8px; text-align: right; background-color: ${rStyle.cellBg}; white-space: nowrap;">
-            <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: ${rStyle.bg}; color: ${rStyle.text}; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 700;">
-              ${rPctStr}
-            </span>
-            <div style="font-family: 'Courier New', Courier, monospace; font-size: 10px; font-weight: 600; color: ${rDiffAbs >= 0 ? '#047857' : '#be123c'}; margin-top: 2px;">
-              ${rAbsStr}
-            </div>
-          </td>
-        </tr>
-      `;
+      rowsHtml += `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
+        `<td style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0;white-space:nowrap">` +
+          `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
+          `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(pvMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${pvBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(uMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${uBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatRatio(rMed)}</div>` +
+        `</td>` +
+        `<td align="right" style="padding:6px 8px;${rBg}white-space:nowrap">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
+        `</td>` +
+      `</tr>`;
     });
 
     const totalPV = Number(dayRecord.pageviews) || 0;

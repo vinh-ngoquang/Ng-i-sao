@@ -69,10 +69,12 @@ export const EmailReportModal: React.FC<EmailReportModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          to: emailTo.trim() || undefined,
           emailTo: emailTo.trim() || undefined,
           smtpUser: smtpUser.trim() || undefined,
           smtpPass: smtpPass.trim() || undefined,
-          date: report.reportDate,
+          targetDate: report.targetDate,
+          date: report.targetDate,
           records,
         }),
       });
@@ -81,7 +83,7 @@ export const EmailReportModal: React.FC<EmailReportModalProps> = ({
       if (response.ok && data.success) {
         setSendResult({
           type: 'success',
-          message: data.message || `Đã gửi email báo cáo ngày ${formatDateVN(report.reportDate)} thành công!`,
+          message: data.message || `Đã gửi email báo cáo ngày ${formatDateVN(report.targetDate)} thành công!`,
         });
       } else {
         setSendResult({
@@ -105,7 +107,7 @@ export const EmailReportModal: React.FC<EmailReportModalProps> = ({
     try {
       if (typeof ClipboardItem !== 'undefined') {
         const htmlBlob = new Blob([report.html], { type: 'text/html' });
-        const textBlob = new Blob([report.text], { type: 'text/plain' });
+        const textBlob = new Blob([report.subject], { type: 'text/plain' });
         await navigator.clipboard.write([
           new ClipboardItem({
             'text/html': htmlBlob,
@@ -118,7 +120,7 @@ export const EmailReportModal: React.FC<EmailReportModalProps> = ({
       setCopiedHtml(true);
       setTimeout(() => setCopiedHtml(false), 3000);
     } catch {
-      await navigator.clipboard.writeText(report.text);
+      await navigator.clipboard.writeText(report.html);
       setCopiedHtml(true);
       setTimeout(() => setCopiedHtml(false), 3000);
     }

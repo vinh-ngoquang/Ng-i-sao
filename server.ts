@@ -253,10 +253,10 @@ app.get('/api/markdown', (req, res) => {
 app.all('/api/send-email', async (req, res) => {
   try {
     const body = req.body || {};
-    const smtpUser = body.smtpUser || process.env.SMTP_USER;
-    const smtpPass = body.smtpPass || process.env.SMTP_PASS;
-    const emailTo = body.emailTo || process.env.EMAIL_TO || smtpUser;
-    const targetDate = body.date || (req.query?.date as string) || undefined;
+    const smtpUser = (body.smtpUser || process.env.SMTP_USER || '').trim();
+    const smtpPass = (body.smtpPass || process.env.SMTP_PASS || '').replace(/\s+/g, '');
+    const emailTo = (body.to || body.emailTo || process.env.EMAIL_TO || smtpUser).trim();
+    const targetDate = body.targetDate || body.date || (req.query?.date as string) || undefined;
 
     if (!smtpUser || !smtpPass) {
       return res.status(400).json({
@@ -300,20 +300,20 @@ app.all('/api/send-email', async (req, res) => {
     });
 
     const info = await transporter.sendMail({
-      from: `"Dashboard Traffic Daily" <${smtpUser}>`,
+      from: `"Dashboard Pageviews & Users" <${smtpUser}>`,
       to: emailTo,
       subject: report.subject,
-      text: report.text,
       html: report.html,
     });
 
     return res.json({
       success: true,
       messageId: info.messageId,
-      reportDate: report.reportDate,
+      targetDate: report.targetDate,
+      formattedDate: report.formattedDate,
       recipients: emailTo,
       subject: report.subject,
-      message: `Đã gửi email báo cáo ngày ${report.reportDate} tới ${emailTo} thành công!`
+      message: `Đã gửi email báo cáo ngày ${report.formattedDate} tới ${emailTo} thành công!`
     });
   } catch (err: any) {
     console.error('Send email error:', err);
