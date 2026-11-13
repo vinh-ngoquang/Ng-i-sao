@@ -43,22 +43,22 @@ const KEY_MAP = [
 ];
 
 const METRIC_PAIRS = [
-  { id: 'total', shortLabel: 'Total', categoryLabel: 'Tổng quan', pvKey: 'pageviews', uKey: 'user', color: '#e11d48' },
-  { id: 'ex_direct', shortLabel: 'Ex-Direct', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_direct', uKey: 'u_ex_direct', color: '#2563eb' },
-  { id: 'ex_google', shortLabel: 'Ex-Google', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_google', uKey: 'u_ex_google', color: '#059669' },
-  { id: 'ex_social', shortLabel: 'Ex-Social', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_social', uKey: 'u_ex_social', color: '#7c3aed' },
-  { id: 'ex_referer', shortLabel: 'Ex-Referer', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_referer', uKey: 'u_ex_referer', color: '#d97706' },
-  { id: 'in_home', shortLabel: 'In-Home', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_home', uKey: 'u_in_home', color: '#0284c7' },
-  { id: 'in_folder', shortLabel: 'In-Folder', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_folder', uKey: 'u_in_folder', color: '#0891b2' },
-  { id: 'in_detail', shortLabel: 'In-Detail', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_detail', uKey: 'u_in_detail', color: '#db2777' },
-  { id: 'in_other', shortLabel: 'In-Other', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_other', uKey: 'u_in_other', color: '#64748b' },
-  { id: 'do', shortLabel: 'DO', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_do', uKey: 'u_do', color: '#ea580c' },
-  { id: 'ov', shortLabel: 'OV', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_ov', uKey: 'u_ov', color: '#4f46e5' },
-  { id: 'unknown', shortLabel: 'Unknown', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_unknown', uKey: 'u_unknown', color: '#94a3b8' },
-  { id: 'mobile', shortLabel: 'Mobile', categoryLabel: 'Thiết Bị', pvKey: 'p_mobile', uKey: 'u_mobile', color: '#10b981' },
-  { id: 'pc', shortLabel: 'PC', categoryLabel: 'Thiết Bị', pvKey: 'p_pc', uKey: 'u_pc', color: '#3b82f6' },
-  { id: 'app', shortLabel: 'App', categoryLabel: 'Thiết Bị', pvKey: 'p_app', uKey: 'u_app', color: '#8b5cf6' },
-  { id: 'tablet', shortLabel: 'Tablet', categoryLabel: 'Thiết Bị', pvKey: 'p_tablet', uKey: 'u_tablet', color: '#f59e0b' },
+  { id: 'total', shortLabel: 'Total', category: 'total', categoryLabel: 'Tổng quan', pvKey: 'pageviews', uKey: 'user', color: '#e11d48' },
+  { id: 'ex_direct', shortLabel: 'Ex-Direct', category: 'external', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_direct', uKey: 'u_ex_direct', color: '#2563eb' },
+  { id: 'ex_google', shortLabel: 'Ex-Google', category: 'external', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_google', uKey: 'u_ex_google', color: '#059669' },
+  { id: 'ex_social', shortLabel: 'Ex-Social', category: 'external', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_social', uKey: 'u_ex_social', color: '#7c3aed' },
+  { id: 'ex_referer', shortLabel: 'Ex-Referer', category: 'external', categoryLabel: 'Nguồn Ngoài', pvKey: 'p_ex_referer', uKey: 'u_ex_referer', color: '#d97706' },
+  { id: 'in_home', shortLabel: 'In-Home', category: 'internal', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_home', uKey: 'u_in_home', color: '#0284c7' },
+  { id: 'in_folder', shortLabel: 'In-Folder', category: 'internal', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_folder', uKey: 'u_in_folder', color: '#0891b2' },
+  { id: 'in_detail', shortLabel: 'In-Detail', category: 'internal', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_detail', uKey: 'u_in_detail', color: '#db2777' },
+  { id: 'in_other', shortLabel: 'In-Other', category: 'internal', categoryLabel: 'Khu Vực Trang', pvKey: 'p_in_other', uKey: 'u_in_other', color: '#64748b' },
+  { id: 'do', shortLabel: 'DO', category: 'distribution', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_do', uKey: 'u_do', color: '#ea580c' },
+  { id: 'ov', shortLabel: 'OV', category: 'distribution', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_ov', uKey: 'u_ov', color: '#4f46e5' },
+  { id: 'unknown', shortLabel: 'Unknown', category: 'distribution', categoryLabel: 'Phân Loại Lưu Lượng', pvKey: 'p_unknown', uKey: 'u_unknown', color: '#94a3b8' },
+  { id: 'mobile', shortLabel: 'Mobile', category: 'device', categoryLabel: 'Thiết Bị', pvKey: 'p_mobile', uKey: 'u_mobile', color: '#10b981' },
+  { id: 'pc', shortLabel: 'PC', category: 'device', categoryLabel: 'Thiết Bị', pvKey: 'p_pc', uKey: 'u_pc', color: '#3b82f6' },
+  { id: 'app', shortLabel: 'App', category: 'device', categoryLabel: 'Thiết Bị', pvKey: 'p_app', uKey: 'u_app', color: '#8b5cf6' },
+  { id: 'tablet', shortLabel: 'Tablet', category: 'device', categoryLabel: 'Thiết Bị', pvKey: 'p_tablet', uKey: 'u_tablet', color: '#f59e0b' },
 ];
 
 function parseTsvToRecords(tsvText) {
@@ -109,7 +109,6 @@ async function fetchLiveGoogleSheets() {
     console.warn('⚠️ Không tải được trực tiếp từ Google Sheets, dùng dữ liệu dự phòng initialData.json:', err.message);
   }
 
-  // Fallback to local initialData.json
   const jsonPath = path.resolve(process.cwd(), 'src/data/initialData.json');
   if (fs.existsSync(jsonPath)) {
     const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
@@ -155,21 +154,74 @@ function getMedian(arr) {
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function computeDowMediansForSite(siteRecords, dayIndex) {
-  const sameDow = siteRecords.filter((r) => getDayOfWeekInfo(r.date_day).dayIndex === dayIndex);
-  const mediansByMetric = {};
-  METRIC_PAIRS.forEach((pair) => {
-    mediansByMetric[pair.pvKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.pvKey]) || 0)));
-    mediansByMetric[pair.uKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.uKey]) || 0)));
-    mediansByMetric[`${pair.id}_ratio`] = getMedian(
-      sameDow.map((r) => {
-        const pv = Number(r[pair.pvKey]) || 0;
-        const u = Number(r[pair.uKey]) || 0;
-        return u > 0 ? pv / u : 0;
-      })
-    );
-  });
-  return { count: sameDow.length, mediansByMetric };
+function computeAllDowMediansForSite(siteRecords) {
+  const map = new Map();
+  for (let d = 0; d < 7; d++) {
+    const sameDow = siteRecords.filter((r) => getDayOfWeekInfo(r.date_day).dayIndex === d);
+    const mediansByMetric = {};
+    METRIC_PAIRS.forEach((pair) => {
+      mediansByMetric[pair.pvKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.pvKey]) || 0)));
+      mediansByMetric[pair.uKey] = Math.round(getMedian(sameDow.map((r) => Number(r[pair.uKey]) || 0)));
+      mediansByMetric[`${pair.id}_ratio`] = getMedian(
+        sameDow.map((r) => {
+          const pv = Number(r[pair.pvKey]) || 0;
+          const u = Number(r[pair.uKey]) || 0;
+          return u > 0 ? pv / u : 0;
+        })
+      );
+    });
+    map.set(d, { dayIndex: d, count: sameDow.length, mediansByMetric });
+  }
+  return map;
+}
+
+function computeStreakVsDowMedian(siteRecords, dowMediansMap, getValue, getMedianValue) {
+  if (siteRecords.length === 0) return { direction: 'flat', days: 0 };
+
+  const lastRec = siteRecords[siteRecords.length - 1];
+  const lastDow = getDayOfWeekInfo(lastRec.date_day).dayIndex;
+  const lastMedObj = dowMediansMap.get(lastDow);
+  if (!lastMedObj) return { direction: 'flat', days: 0 };
+
+  const firstDiff = getValue(lastRec) - getMedianValue(lastMedObj);
+  if (Math.abs(firstDiff) < 1e-9) {
+    return { direction: 'flat', days: 1 };
+  }
+
+  const targetDir = firstDiff > 0 ? 'up' : 'down';
+  let days = 0;
+
+  for (let i = siteRecords.length - 1; i >= 0; i--) {
+    const rec = siteRecords[i];
+    const dow = getDayOfWeekInfo(rec.date_day).dayIndex;
+    const medObj = dowMediansMap.get(dow);
+    if (!medObj) break;
+
+    const diff = getValue(rec) - getMedianValue(medObj);
+    if (targetDir === 'down' && diff < -1e-9) {
+      days++;
+    } else if (targetDir === 'up' && diff > 1e-9) {
+      days++;
+    } else {
+      break;
+    }
+  }
+
+  return { direction: targetDir, days };
+}
+
+function renderStreakBadge(streak) {
+  if (streak.direction === 'down') {
+    const isLongDrop = streak.days >= 3;
+    const style = isLongDrop
+      ? 'background:#ffe4e6;color:#be123c;border:1px solid #fda4af;padding:1px 4px;border-radius:3px;font:700 10px sans-serif;display:inline-block;margin-top:2px'
+      : 'color:#be123c;font:700 10px sans-serif;display:inline-block;margin-top:2px';
+    return `<div style="${style}">▼ Giảm ${streak.days} ngày LT</div>`;
+  }
+  if (streak.direction === 'up') {
+    return `<div style="color:#047857;font:600 10px sans-serif;margin-top:2px">▲ Tăng ${streak.days} ngày LT</div>`;
+  }
+  return `<div style="color:#64748b;font:400 10px sans-serif;margin-top:2px">— Ngang TV</div>`;
 }
 
 function getInlineBadgeStyle(diffPct) {
@@ -232,14 +284,14 @@ function generateDailyEmailReport(records, requestedDate) {
     if (!dayRecord) return;
 
     const recordDow = getDayOfWeekInfo(dayRecord.date_day);
-    const medianData = computeDowMediansForSite(siteRecords, recordDow.dayIndex);
+    const dowMediansMap = computeAllDowMediansForSite(siteRecords);
+    const medianData = dowMediansMap.get(recordDow.dayIndex);
     const brand = getSiteBrandColors(siteName);
 
     let spikeCount = 0;
     let dropCount = 0;
-    let rowsHtml = '';
 
-    METRIC_PAIRS.forEach((pair, idx) => {
+    const pairMetrics = METRIC_PAIRS.map((pair) => {
       const pv = Number(dayRecord[pair.pvKey]) || 0;
       const u = Number(dayRecord[pair.uKey]) || 0;
       const ratio = u > 0 ? pv / u : 0;
@@ -255,6 +307,112 @@ function generateDailyEmailReport(records, requestedDate) {
       const pvDiffAbs = pv - pvMed;
       const uDiffAbs = u - uMed;
       const rDiffAbs = ratio - rMed;
+
+      const pvStreak = computeStreakVsDowMedian(
+        siteRecords,
+        dowMediansMap,
+        (r) => Number(r[pair.pvKey]) || 0,
+        (m) => m.mediansByMetric[pair.pvKey] || 0
+      );
+      const uStreak = computeStreakVsDowMedian(
+        siteRecords,
+        dowMediansMap,
+        (r) => Number(r[pair.uKey]) || 0,
+        (m) => m.mediansByMetric[pair.uKey] || 0
+      );
+      const rStreak = computeStreakVsDowMedian(
+        siteRecords,
+        dowMediansMap,
+        (r) => {
+          const rPv = Number(r[pair.pvKey]) || 0;
+          const rU = Number(r[pair.uKey]) || 0;
+          return rU > 0 ? rPv / rU : 0;
+        },
+        (m) => {
+          const mPv = m.mediansByMetric[pair.pvKey] || 0;
+          const mU = m.mediansByMetric[pair.uKey] || 0;
+          return m.mediansByMetric[`${pair.id}_ratio`] || (mU > 0 ? mPv / mU : 0);
+        }
+      );
+
+      return {
+        pair,
+        pv,
+        u,
+        ratio,
+        pvMed,
+        uMed,
+        rMed,
+        pvDiffPct,
+        uDiffPct,
+        rDiffPct,
+        pvDiffAbs,
+        uDiffAbs,
+        rDiffAbs,
+        pvStreak,
+        uStreak,
+        rStreak,
+      };
+    });
+
+    let rowsHtml = '';
+    let currentCategory = '';
+    const notableDropStreaks = [];
+
+    pairMetrics.forEach((item, idx) => {
+      const {
+        pair,
+        pv,
+        u,
+        ratio,
+        pvMed,
+        uMed,
+        rMed,
+        pvDiffPct,
+        uDiffPct,
+        rDiffPct,
+        pvDiffAbs,
+        uDiffAbs,
+        rDiffAbs,
+        pvStreak,
+        uStreak,
+        rStreak,
+      } = item;
+
+      if (pvStreak.direction === 'down' && pvStreak.days >= 3) {
+        notableDropStreaks.push(`${pair.shortLabel} (PV giảm ${pvStreak.days} ngày LT)`);
+      }
+      if (uStreak.direction === 'down' && uStreak.days >= 3) {
+        notableDropStreaks.push(`${pair.shortLabel} (User giảm ${uStreak.days} ngày LT)`);
+      }
+
+      if (pair.category !== currentCategory) {
+        currentCategory = pair.category;
+        const groupItems = pairMetrics.filter((x) => x.pair.category === currentCategory);
+        const pvDrops = groupItems.filter((x) => x.pvStreak.direction === 'down');
+        const uDrops = groupItems.filter((x) => x.uStreak.direction === 'down');
+
+        const dropDetails = groupItems
+          .filter((x) => x.pvStreak.direction === 'down' || x.uStreak.direction === 'down')
+          .map((x) => {
+            const parts = [];
+            if (x.pvStreak.direction === 'down') parts.push(`PV -${x.pvStreak.days}d`);
+            if (x.uStreak.direction === 'down') parts.push(`U -${x.uStreak.days}d`);
+            return `${x.pair.shortLabel} (${parts.join(', ')})`;
+          });
+
+        const groupSummaryText =
+          dropDetails.length > 0
+            ? `<span style="color:#be123c">▼ Đang giảm so với TV Thứ (${pvDrops.length}/${groupItems.length} PV, ${uDrops.length}/${groupItems.length} User): <strong>${dropDetails.join(' • ')}</strong></span>`
+            : `<span style="color:#047857">▲ Tất cả chỉ số trong nhóm đều tăng/ngang so với TV Thứ</span>`;
+
+        rowsHtml +=
+          `<tr style="background:#f1f5f9;border-top:2px solid #cbd5e1;border-bottom:1px solid #cbd5e1">` +
+          `<td colspan="7" style="padding:6px 9px;font:700 11px sans-serif;color:#1e293b">` +
+          `<span style="text-transform:uppercase;letter-spacing:0.4px;margin-right:10px">■ Nhóm: ${pair.categoryLabel}</span>` +
+          `<span style="font:600 11px sans-serif">${groupSummaryText}</span>` +
+          `</td></tr>`;
+      }
 
       if (pvDiffPct >= 20) spikeCount++;
       else if (pvDiffPct <= -20) dropCount++;
@@ -282,33 +440,37 @@ function generateDailyEmailReport(records, requestedDate) {
       const uBg = uStyle.cellBg !== '#ffffff' ? `background:${uStyle.cellBg};` : '';
       const rBg = rStyle.cellBg !== '#ffffff' ? `background:${rStyle.cellBg};` : '';
 
-      rowsHtml += `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
-        `<td style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0;white-space:nowrap">` +
-          `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
-          `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
+      rowsHtml +=
+        `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
+        `<td nowrap style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0">` +
+        `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
+        `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
-          `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(pvMed)}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a">` +
+        `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(pvMed)}</div>` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${pvBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
-          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</span>` +
-          `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${pvBg}border-right:1px solid #e2e8f0">` +
+        `<b style="padding:1px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</b>` +
+        `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
+        `${renderStreakBadge(pvStreak)}` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
-          `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(uMed)}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a">` +
+        `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatNumber(uMed)}</div>` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${uBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
-          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</span>` +
-          `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${uBg}border-right:1px solid #e2e8f0">` +
+        `<b style="padding:1px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</b>` +
+        `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
+        `${renderStreakBadge(uStreak)}` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
-          `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatRatio(rMed)}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a">` +
+        `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${recordDow.shortName}: ${formatRatio(rMed)}</div>` +
         `</td>` +
-        `<td align="right" style="padding:6px 8px;${rBg}white-space:nowrap">` +
-          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</span>` +
-          `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
+        `<td align="right" nowrap style="padding:6px 8px;${rBg}">` +
+        `<b style="padding:1px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</b>` +
+        `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
+        `${renderStreakBadge(rStreak)}` +
         `</td>` +
-      `</tr>`;
+        `</tr>`;
     });
 
     const totalPV = Number(dayRecord.pageviews) || 0;
@@ -317,7 +479,17 @@ function generateDailyEmailReport(records, requestedDate) {
 
     plainTextLines.push(`■ Site: ${siteName} (${formatDateVN(dayRecord.date_day)})`);
     plainTextLines.push(`  - Tổng Pageviews: ${formatNumber(totalPV)} | Tổng Users: ${formatNumber(totalUser)} | PV/User: ${formatRatio(totalRatio)}`);
+    if (notableDropStreaks.length > 0) {
+      plainTextLines.push(`  - Cảnh báo giảm liên tục (≥3 ngày vs TV Thứ): ${notableDropStreaks.join(', ')}`);
+    }
     plainTextLines.push('');
+
+    const dropAlertHtml =
+      notableDropStreaks.length > 0
+        ? `<div style="margin-top:6px;padding:6px 10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:11px;color:#9f1239">` +
+          `<strong>⚠️ Cảnh báo giảm liên tục (≥3 ngày so với TV Thứ):</strong> ${notableDropStreaks.join(' • ')}` +
+          `</div>`
+        : '';
 
     siteSectionsHtml += `
       <div style="margin-bottom:24px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden">
@@ -338,26 +510,27 @@ function generateDailyEmailReport(records, requestedDate) {
             <span style="margin-right:14px">Tổng PV: <strong style="color:#e11d48;font-family:monospace">${formatNumber(totalPV)}</strong></span>
             <span style="margin-right:14px">Tổng User: <strong style="color:#2563eb;font-family:monospace">${formatNumber(totalUser)}</strong></span>
             <span style="margin-right:14px">PV/User: <strong style="color:#059669;font-family:monospace">${formatRatio(totalRatio)}</strong></span>
-            <span style="margin-right:12px;color:#047857">▲ Tăng bất thường (≥+20%): <strong>${spikeCount}</strong> chỉ số</span>
-            <span style="color:#be123c">▼ Giảm bất thường (≤-20%): <strong>${dropCount}</strong> chỉ số</span>
+            <span style="margin-right:12px;color:#047857">▲ Tăng ≥+20%: <strong>${spikeCount}</strong></span>
+            <span style="color:#be123c">▼ Giảm ≤-20%: <strong>${dropCount}</strong></span>
           </div>
+          ${dropAlertHtml}
         </div>
         <div style="overflow-x:auto">
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
             <thead>
               <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1;font-size:11px;font-weight:700;color:#334155;text-transform:uppercase">
-                <th rowspan="2" align="left" style="padding:7px 9px;border-right:1px solid #cbd5e1">Cặp Chỉ Số</th>
+                <th rowspan="2" align="left" style="padding:7px 8px;border-right:1px solid #cbd5e1">Cặp Chỉ Số</th>
                 <th colspan="2" align="center" style="padding:5px 8px;color:#be123c;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Pageviews (PV)</th>
                 <th colspan="2" align="center" style="padding:5px 8px;color:#1d4ed8;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Users (Độc Giả)</th>
                 <th colspan="2" align="center" style="padding:5px 8px;color:#047857;border-bottom:1px solid #cbd5e1">Tỷ Lệ PV / User</th>
               </tr>
               <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">
-                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">% & Tuyệt Đối</th>
-                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">% & Tuyệt Đối</th>
-                <th align="right" style="padding:4px 9px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px">% & Tuyệt Đối</th>
+                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">Lệch & Chuỗi Ngày</th>
+                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">Lệch & Chuỗi Ngày</th>
+                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
+                <th align="right" style="padding:4px 8px">Lệch & Chuỗi Ngày</th>
               </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
@@ -376,15 +549,16 @@ function generateDailyEmailReport(records, requestedDate) {
     <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:16px">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#fda4af;font-weight:700;margin-bottom:4px">BÁO CÁO TỰ ĐỘNG HÀNG NGÀY • GOOGLE SHEETS LIVE</div>
       <h1 style="margin:0 0 6px 0;font-size:19px;font-weight:800;color:#fff">Thống Kê Chi Tiết Pageviews & Users — Ngày ${formattedDate} (${dowInfo.name})</h1>
-      <p style="margin:0;font-size:12px;color:#cbd5e1;line-height:1.5">Dữ liệu ngày mới nhất của 3 site (<strong>${orderedSites.join(', ')}</strong>) đối chiếu với <strong>Mức Trung Vị Chuẩn Theo ${dowInfo.name}</strong> (tính cố định từ đầu năm 01/01/2026). Bao gồm Số thực tế, % Lệch và Số lệch tuyệt đối.</p>
+      <p style="margin:0;font-size:12px;color:#cbd5e1;line-height:1.5">Dữ liệu ngày mới nhất của 3 site (<strong>${orderedSites.join(', ')}</strong>) đối chiếu với <strong>Mức Trung Vị Chuẩn Theo ${dowInfo.name}</strong> (tính cố định từ đầu năm 01/01/2026). Bao gồm Số thực tế, % Lệch, Số lệch tuyệt đối và <strong>Chuỗi ngày tăng/giảm liên tiếp (LT) so với Trung vị Thứ</strong>.</p>
     </div>
     <div style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:11px;color:#475569">
-      <strong style="color:#0f172a;margin-right:8px">Chú giải màu độ lệch vs Trung vị Thứ:</strong>
+      <strong style="color:#0f172a;margin-right:8px">Chú giải độ lệch & chuỗi ngày vs Trung vị Thứ:</strong>
       <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#059669;color:#fff;font-weight:700;margin-right:6px">≥ +20% Tăng bất thường</span>
       <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#d1fae5;color:#065f46;font-weight:600;margin-right:6px">+5% ~ +20% Tăng nhẹ</span>
       <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;margin-right:6px">±5% Ổn định</span>
       <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#ffe4e6;color:#9f1239;font-weight:600;margin-right:6px">-5% ~ -20% Giảm nhẹ</span>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#e11d48;color:#fff;font-weight:700">≤ -20% Giảm bất thường</span>
+      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#e11d48;color:#fff;font-weight:700;margin-right:6px">≤ -20% Giảm bất thường</span>
+      <span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#ffe4e6;color:#be123c;border:1px solid #fda4af;font-weight:700">▼ Giảm X ngày LT: Giảm liên tiếp X ngày so với TV Thứ</span>
     </div>
     ${siteSectionsHtml}
     <div style="text-align:center;font-size:11px;color:#64748b;padding:10px 0;border-top:1px solid #cbd5e1">
