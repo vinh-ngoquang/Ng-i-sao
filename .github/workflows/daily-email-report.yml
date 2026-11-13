@@ -1,0 +1,35 @@
+name: Gửi Email Báo Cáo Traffic Hàng Ngày
+
+on:
+  schedule:
+    # Chạy tự động lúc 07:30 sáng giờ Việt Nam (00:30 UTC) mỗi ngày
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+    inputs:
+      report_date:
+        description: 'Ngày báo cáo (YYYY-MM-DD, để trống để lấy ngày mới nhất)'
+        required: false
+        default: ''
+
+jobs:
+  send-daily-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Fetch Google Sheets & Send Daily Email Report
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          REPORT_DATE: ${{ github.event.inputs.report_date }}
+        run: node scripts/sendDailyEmail.mjs

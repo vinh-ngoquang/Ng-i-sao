@@ -5,6 +5,7 @@ import { TimeSeriesChart } from './components/TimeSeriesChart';
 import { DataTableSection } from './components/DataTableSection';
 import { MarkdownViewerModal } from './components/MarkdownViewerModal';
 import { SyncStatusModal } from './components/SyncStatusModal';
+import { EmailReportModal } from './components/EmailReportModal';
 import { NgoiSaoRecord, FilterState } from './types';
 import { filterRecords, getAvailableSites } from './utils/dataProcessing';
 import { formatDateVN } from './utils/formatters';
@@ -36,6 +37,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isMarkdownOpen, setIsMarkdownOpen] = useState<boolean>(false);
   const [isSyncStatusOpen, setIsSyncStatusOpen] = useState<boolean>(false);
+  const [isEmailReportOpen, setIsEmailReportOpen] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({
     show: false,
     msg: '',
@@ -329,6 +331,7 @@ export default function App() {
         onRefresh={handleManualSync}
         onOpenSyncStatus={() => setIsSyncStatusOpen(true)}
         onOpenMarkdown={() => setIsMarkdownOpen(true)}
+        onOpenEmailReport={() => setIsEmailReportOpen(true)}
         onExportCsv={handleExportFullCsv}
         selectedSite={filter.selectedSite}
         onSelectSite={(site) => setFilter(prev => ({ ...prev, selectedSite: site }))}
@@ -384,6 +387,13 @@ export default function App() {
         earliestDate={availableDates.min}
         latestDate={availableDates.max}
         onImportCustomData={handleImportCustomData}
+      />
+
+      {/* Modal: Daily Automated Email Report */}
+      <EmailReportModal
+        isOpen={isEmailReportOpen}
+        onClose={() => setIsEmailReportOpen(false)}
+        records={records}
       />
 
       {/* Footer */}

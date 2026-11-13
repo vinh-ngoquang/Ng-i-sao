@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, FileText, Download, CheckCircle2, AlertCircle, ExternalLink, Calendar, HelpCircle } from 'lucide-react';
+import { RefreshCw, FileText, Download, CheckCircle2, AlertCircle, ExternalLink, Calendar, HelpCircle, Mail } from 'lucide-react';
 import { formatDateVN } from '../utils/formatters';
 
 interface HeaderProps {
@@ -11,6 +11,7 @@ interface HeaderProps {
   onRefresh: () => void;
   onOpenSyncStatus: () => void;
   onOpenMarkdown: () => void;
+  onOpenEmailReport?: () => void;
   onExportCsv: () => void;
   selectedSite?: string;
   onSelectSite?: (site: string) => void;
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   onOpenSyncStatus,
   onOpenMarkdown,
+  onOpenEmailReport,
   onExportCsv,
   selectedSite = 'Ngôi sao',
   onSelectSite,
@@ -124,6 +126,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <HelpCircle className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {onOpenEmailReport && (
+              <button
+                id="btn-open-email-report"
+                onClick={onOpenEmailReport}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer border border-indigo-200"
+                title="Xem trước & gửi Email báo cáo tự động hàng ngày (3 Site)"
+              >
+                <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Báo Cáo Email</span>
+              </button>
+            )}
 
             <button
               id="btn-open-markdown"

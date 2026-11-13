@@ -2,13 +2,15 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
+import nodemailer from 'nodemailer';
 import { createServer as createViteServer } from 'vite';
+import { generateDailyEmailReport } from './src/utils/emailReportGenerator';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const GOOGLE_SHEETS_TSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQksM6-RzffQI5Va9Bx6X9oiii5Hd_BYZDjaRSNnHOuhke-FlQr9kuYOTXuuoA2SkZPyvrCF2_c6dkC/pub?gid=1633653606&single=true&output=tsv';
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // In-memory cache
 let cachedRecords: any[] = [];
@@ -244,6 +246,81 @@ app.get('/api/markdown', (req, res) => {
     }
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. API: Send Daily Email Report
+app.all('/api/send-email', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const smtpUser = body.smtpUser || process.env.SMTP_USER;
+    const smtpPass = body.smtpPass || process.env.SMTP_PASS;
+    const emailTo = body.emailTo || process.env.EMAIL_TO || smtpUser;
+    const targetDate = body.date || (req.query?.date as string) || undefined;
+
+    if (!smtpUser || !smtpPass) {
+      return res.status(400).json({
+        success: false,
+        error: 'Thiếu cấu hình SMTP_USER hoặc SMTP_PASS (Gmail App Password).'
+      });
+    }
+
+    if (!emailTo) {
+      return res.status(400).json({
+        success: false,
+        error: 'Thiếu địa chỉ email người nhận (EMAIL_TO).'
+      });
+    }
+
+    let records = body.records;
+    if (!Array.isArray(records) || records.length === 0) {
+      records = await fetchLiveGoogleSheets();
+      if (!records || records.length === 0) {
+        records = loadLocalJson();
+      }
+    }
+
+    if (!records || records.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'Không tải được dữ liệu để tạo báo cáo email.'
+      });
+    }
+
+    const report = generateDailyEmailReport(records, targetDate);
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || 465),
+      secure: process.env.SMTP_SECURE !== 'false',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: `"Dashboard Traffic Daily" <${smtpUser}>`,
+      to: emailTo,
+      subject: report.subject,
+      text: report.text,
+      html: report.html,
+    });
+
+    return res.json({
+      success: true,
+      messageId: info.messageId,
+      reportDate: report.reportDate,
+      recipients: emailTo,
+      subject: report.subject,
+      message: `Đã gửi email báo cáo ngày ${report.reportDate} tới ${emailTo} thành công!`
+    });
+  } catch (err: any) {
+    console.error('Send email error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi gửi email qua SMTP'
+    });
   }
 });
 
