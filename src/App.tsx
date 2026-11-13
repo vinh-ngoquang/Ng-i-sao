@@ -47,7 +47,7 @@ export default function App() {
   // Filters
   const [filter, setFilter] = useState<FilterState>(() => {
     const saved = localStorage.getItem('ngoisao_selected_site');
-    const validSite = saved && saved !== 'all' ? saved : 'Ngôi sao';
+    const validSite = saved && saved !== 'all' ? saved : 'VnExpress';
     return {
       selectedSite: validSite,
       dateRange: 'all',

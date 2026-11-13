@@ -143,11 +143,20 @@ export function getAvailableSites(records: NgoiSaoRecord[]): { id: string; name:
     const site = r.site ? r.site.trim() : 'Ngôi sao';
     map.set(site, (map.get(site) || 0) + 1);
   });
-  return Array.from(map.entries()).map(([name, count]) => ({
-    id: name,
-    name,
-    count,
-  }));
+  const preferredOrder = ['vnexpress', 'ngôi sao', 'english'];
+  return Array.from(map.entries())
+    .map(([name, count]) => ({
+      id: name,
+      name,
+      count,
+    }))
+    .sort((a, b) => {
+      const idxA = preferredOrder.indexOf(a.name.toLowerCase());
+      const idxB = preferredOrder.indexOf(b.name.toLowerCase());
+      const rankA = idxA === -1 ? 999 : idxA;
+      const rankB = idxB === -1 ? 999 : idxB;
+      return rankA - rankB;
+    });
 }
 
 export function filterRecords(records: NgoiSaoRecord[], filter: FilterState): NgoiSaoRecord[] {

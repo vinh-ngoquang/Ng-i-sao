@@ -145,7 +145,7 @@ export const EmailReportModal: React.FC<EmailReportModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Tổng hợp dữ liệu ngày mới nhất của <strong>Ngôi sao</strong> • <strong>VnExpress</strong> • <strong>English</strong> kèm % lệch &amp; số lệch tuyệt đối so với Trung vị từ đầu năm
+                Tổng hợp dữ liệu ngày mới nhất của <strong>VnExpress</strong> • <strong>Ngôi sao</strong> • <strong>English</strong> kèm % lệch &amp; số lệch tuyệt đối so với Trung vị từ đầu năm
               </p>
             </div>
           </div>

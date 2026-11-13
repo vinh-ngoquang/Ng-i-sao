@@ -256,7 +256,7 @@ function generateDailyEmailReport(records, requestedDate) {
   const formattedDate = formatDateVN(targetDate);
   const dowInfo = getDayOfWeekInfo(targetDate);
 
-  const preferredOrder = ['Ngôi sao', 'VnExpress', 'English'];
+  const preferredOrder = ['VnExpress', 'Ngôi sao', 'English'];
   const existingSites = Array.from(new Set(records.map((r) => (r.site || 'Ngôi sao').trim())));
   const orderedSites = [
     ...preferredOrder.filter((s) => existingSites.some((es) => es.toLowerCase() === s.toLowerCase())),
