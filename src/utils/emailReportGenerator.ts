@@ -3,11 +3,6 @@ import { METRIC_PAIRS } from '../data/metricPairs';
 import { computeDayOfWeekMedians, getDayOfWeekInfo, DayOfWeekMedian } from './dataProcessing';
 import { formatDateVN, formatNumber, formatRatio } from './formatters';
 
-export interface StreakInfo {
-  direction: 'up' | 'down' | 'flat';
-  days: number;
-}
-
 export interface SiteDailyReportSummary {
   siteName: string;
   date: string;
@@ -83,15 +78,12 @@ function getSiteBrandColors(siteName: string) {
   };
 }
 
-/**
- * Tính số ngày tăng/giảm liên tiếp (so với Trung vị cùng Thứ) tính ngược từ ngày báo cáo
- */
 function computeStreakVsDowMedian(
   siteRecords: NgoiSaoRecord[],
   dowMediansMap: Map<number, DayOfWeekMedian>,
   getValue: (r: NgoiSaoRecord) => number,
   getMedianValue: (m: DayOfWeekMedian) => number
-): StreakInfo {
+): { direction: 'up' | 'down' | 'flat'; days: number } {
   if (siteRecords.length === 0) return { direction: 'flat', days: 0 };
 
   const lastRec = siteRecords[siteRecords.length - 1];
@@ -126,18 +118,14 @@ function computeStreakVsDowMedian(
   return { direction: targetDir, days };
 }
 
-function renderStreakBadge(streak: StreakInfo): string {
+function formatStreakLine(streak: { direction: 'up' | 'down' | 'flat'; days: number }): string {
   if (streak.direction === 'down') {
-    const isLongDrop = streak.days >= 3;
-    const style = isLongDrop
-      ? 'background:#ffe4e6;color:#be123c;border:1px solid #fda4af;padding:1px 4px;border-radius:3px;font:700 10px sans-serif;display:inline-block;margin-top:2px'
-      : 'color:#be123c;font:700 10px sans-serif;display:inline-block;margin-top:2px';
-    return `<div style="${style}">▼ Giảm ${streak.days} ngày LT</div>`;
+    return `<div style="font:600 10px sans-serif;color:#be123c;margin-top:2px">Giảm ${streak.days} ngày</div>`;
   }
   if (streak.direction === 'up') {
-    return `<div style="color:#047857;font:600 10px sans-serif;margin-top:2px">▲ Tăng ${streak.days} ngày LT</div>`;
+    return `<div style="font:600 10px sans-serif;color:#047857;margin-top:2px">Tăng ${streak.days} ngày</div>`;
   }
-  return `<div style="color:#64748b;font:400 10px sans-serif;margin-top:2px">— Ngang TV</div>`;
+  return `<div style="font:400 10px sans-serif;color:#64748b;margin-top:2px">Ngang TV</div>`;
 }
 
 export function generateDailyEmailReport(
@@ -156,10 +144,9 @@ export function generateDailyEmailReport(
   }
 
   const allDates = Array.from(new Set(records.map((r) => r.date_day))).sort();
-  const targetDate =
-    requestedDate && allDates.includes(requestedDate)
-      ? requestedDate
-      : allDates[allDates.length - 1];
+  const targetDate = requestedDate && allDates.includes(requestedDate)
+    ? requestedDate
+    : allDates[allDates.length - 1];
 
   const formattedDate = formatDateVN(targetDate);
   const dowInfo = getDayOfWeekInfo(targetDate);
@@ -180,11 +167,7 @@ export function generateDailyEmailReport(
 
   orderedSites.forEach((siteName) => {
     const siteRecords = records
-      .filter(
-        (r) =>
-          (r.site || 'Ngôi sao').trim().toLowerCase() === siteName.toLowerCase() &&
-          r.date_day <= targetDate
-      )
+      .filter((r) => (r.site || 'Ngôi sao').trim().toLowerCase() === siteName.toLowerCase() && r.date_day <= targetDate)
       .sort((a, b) => a.date_day.localeCompare(b.date_day));
 
     const dayRecord = siteRecords.find((r) => r.date_day === targetDate);
@@ -202,16 +185,16 @@ export function generateDailyEmailReport(
     let spikeCount = 0;
     let dropCount = 0;
 
-    // Precompute metrics & streaks for all 16 pairs so we can summarize by category group
-    const pairMetrics = METRIC_PAIRS.map((pair) => {
+    let rowsHtml = '';
+
+    METRIC_PAIRS.forEach((pair, idx) => {
       const pv = Number(dayRecord[pair.pvKey]) || 0;
       const u = Number(dayRecord[pair.uKey]) || 0;
       const ratio = u > 0 ? pv / u : 0;
 
       const pvMed = medianData.mediansByMetric[pair.pvKey] || 0;
       const uMed = medianData.mediansByMetric[pair.uKey] || 0;
-      const rMed =
-        medianData.mediansByMetric[`${pair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
+      const rMed = medianData.mediansByMetric[`${pair.id}_ratio`] || (uMed > 0 ? pvMed / uMed : 0);
 
       const pvDiffPct = pvMed > 0 ? ((pv - pvMed) / pvMed) * 100 : 0;
       const uDiffPct = uMed > 0 ? ((u - uMed) / uMed) * 100 : 0;
@@ -248,86 +231,6 @@ export function generateDailyEmailReport(
         }
       );
 
-      return {
-        pair,
-        pv,
-        u,
-        ratio,
-        pvMed,
-        uMed,
-        rMed,
-        pvDiffPct,
-        uDiffPct,
-        rDiffPct,
-        pvDiffAbs,
-        uDiffAbs,
-        rDiffAbs,
-        pvStreak,
-        uStreak,
-        rStreak,
-      };
-    });
-
-    let rowsHtml = '';
-    let currentCategory = '';
-    const notableDropStreaks: string[] = [];
-
-    pairMetrics.forEach((item, idx) => {
-      const {
-        pair,
-        pv,
-        u,
-        ratio,
-        pvMed,
-        uMed,
-        rMed,
-        pvDiffPct,
-        uDiffPct,
-        rDiffPct,
-        pvDiffAbs,
-        uDiffAbs,
-        rDiffAbs,
-        pvStreak,
-        uStreak,
-        rStreak,
-      } = item;
-
-      if (pvStreak.direction === 'down' && pvStreak.days >= 3) {
-        notableDropStreaks.push(`${pair.shortLabel} (PV giảm ${pvStreak.days} ngày LT)`);
-      }
-      if (uStreak.direction === 'down' && uStreak.days >= 3) {
-        notableDropStreaks.push(`${pair.shortLabel} (User giảm ${uStreak.days} ngày LT)`);
-      }
-
-      // Render Category Group Header Row with Group Streak Summary
-      if (pair.category !== currentCategory) {
-        currentCategory = pair.category;
-        const groupItems = pairMetrics.filter((x) => x.pair.category === currentCategory);
-        const pvDrops = groupItems.filter((x) => x.pvStreak.direction === 'down');
-        const uDrops = groupItems.filter((x) => x.uStreak.direction === 'down');
-
-        const dropDetails = groupItems
-          .filter((x) => x.pvStreak.direction === 'down' || x.uStreak.direction === 'down')
-          .map((x) => {
-            const parts: string[] = [];
-            if (x.pvStreak.direction === 'down') parts.push(`PV -${x.pvStreak.days}d`);
-            if (x.uStreak.direction === 'down') parts.push(`U -${x.uStreak.days}d`);
-            return `${x.pair.shortLabel} (${parts.join(', ')})`;
-          });
-
-        const groupSummaryText =
-          dropDetails.length > 0
-            ? `<span style="color:#be123c">▼ Đang giảm so với TV Thứ (${pvDrops.length}/${groupItems.length} PV, ${uDrops.length}/${groupItems.length} User): <strong>${dropDetails.join(' • ')}</strong></span>`
-            : `<span style="color:#047857">▲ Tất cả chỉ số trong nhóm đều tăng/ngang so với TV Thứ</span>`;
-
-        rowsHtml +=
-          `<tr style="background:#f1f5f9;border-top:2px solid #cbd5e1;border-bottom:1px solid #cbd5e1">` +
-          `<td colspan="7" style="padding:6px 9px;font:700 11px sans-serif;color:#1e293b">` +
-          `<span style="text-transform:uppercase;letter-spacing:0.4px;margin-right:10px">■ Nhóm: ${pair.categoryLabel}</span>` +
-          `<span style="font:600 11px sans-serif">${groupSummaryText}</span>` +
-          `</td></tr>`;
-      }
-
       if (pvDiffPct >= 20) spikeCount++;
       else if (pvDiffPct <= -20) dropCount++;
       if (uDiffPct >= 20) spikeCount++;
@@ -354,37 +257,36 @@ export function generateDailyEmailReport(
       const uBg = uStyle.cellBg !== '#ffffff' ? `background:${uStyle.cellBg};` : '';
       const rBg = rStyle.cellBg !== '#ffffff' ? `background:${rStyle.cellBg};` : '';
 
-      rowsHtml +=
-        `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
-        `<td nowrap style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0">` +
-        `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
-        `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
+      rowsHtml += `<tr style="background:${rowBg};border-bottom:1px solid #e2e8f0">` +
+        `<td style="padding:6px 8px;font:${isTotalRow ? '700' : '600'} 12px sans-serif;color:#0f172a;border-right:1px solid #e2e8f0;white-space:nowrap">` +
+          `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pair.color};margin-right:5px"></span>${pair.shortLabel}` +
+          `<div style="font:400 10px sans-serif;color:#64748b;margin-left:12px">${pair.categoryLabel}</div>` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a">` +
-        `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(pvMed)}</div>` +
+        `<td align="right" style="padding:6px 8px;${pvBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(pv)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(pvMed)}</div>` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${pvBg}border-right:1px solid #e2e8f0">` +
-        `<b style="padding:1px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</b>` +
-        `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
-        `${renderStreakBadge(pvStreak)}` +
+        `<td align="right" style="padding:6px 8px;${pvBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${pvStyle.bg};color:${pvStyle.text};font:700 11px monospace">${pvPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${pvDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${pvAbsStr}</div>` +
+          `${formatStreakLine(pvStreak)}` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a">` +
-        `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(uMed)}</div>` +
+        `<td align="right" style="padding:6px 8px;${uBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatNumber(u)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatNumber(uMed)}</div>` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${uBg}border-right:1px solid #e2e8f0">` +
-        `<b style="padding:1px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</b>` +
-        `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
-        `${renderStreakBadge(uStreak)}` +
+        `<td align="right" style="padding:6px 8px;${uBg}white-space:nowrap;border-right:1px solid #e2e8f0">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${uStyle.bg};color:${uStyle.text};font:700 11px monospace">${uPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${uDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${uAbsStr}</div>` +
+          `${formatStreakLine(uStreak)}` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a">` +
-        `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatRatio(rMed)}</div>` +
+        `<td align="right" style="padding:6px 8px;${rBg}font:700 12px monospace;color:#0f172a;white-space:nowrap">` +
+          `${formatRatio(ratio)}<div style="font:400 10px sans-serif;color:#64748b">TV ${dowInfo.shortName}: ${formatRatio(rMed)}</div>` +
         `</td>` +
-        `<td align="right" nowrap style="padding:6px 8px;${rBg}">` +
-        `<b style="padding:1px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</b>` +
-        `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
-        `${renderStreakBadge(rStreak)}` +
+        `<td align="right" style="padding:6px 8px;${rBg}white-space:nowrap">` +
+          `<span style="display:inline-block;padding:2px 5px;border-radius:4px;background:${rStyle.bg};color:${rStyle.text};font:700 11px monospace">${rPctStr}</span>` +
+          `<div style="font:600 10px monospace;color:${rDiffAbs >= 0 ? '#047857' : '#be123c'};margin-top:2px">${rAbsStr}</div>` +
+          `${formatStreakLine(rStreak)}` +
         `</td>` +
-        `</tr>`;
+      `</tr>`;
     });
 
     const totalPV = Number(dayRecord.pageviews) || 0;
@@ -404,53 +306,56 @@ export function generateDailyEmailReport(
       dropCount,
     });
 
-    const dropAlertHtml =
-      notableDropStreaks.length > 0
-        ? `<div style="margin-top:6px;padding:6px 10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:11px;color:#9f1239">` +
-          `<strong>⚠️ Cảnh báo giảm liên tục (≥3 ngày so với TV Thứ):</strong> ${notableDropStreaks.join(' • ')}` +
-          `</div>`
-        : '';
-
     siteSectionsHtml += `
-      <div style="margin-bottom:24px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;overflow:hidden">
-        <div style="background:${brand.lightBg};border-bottom:2px solid ${brand.border};padding:12px 16px">
+      <div style="margin-bottom: 28px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <!-- Site Section Header -->
+        <div style="background-color: ${brand.lightBg}; border-bottom: 2px solid ${brand.border}; padding: 14px 18px;">
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td>
-                <span style="display:inline-block;padding:3px 9px;border-radius:6px;background:${brand.primary};color:#fff;font-size:12px;font-weight:800;margin-right:8px">${brand.shortCode}</span>
-                <span style="font-size:16px;font-weight:800;color:#0f172a">Site: ${siteName}</span>
-                <span style="font-size:12px;color:#475569;margin-left:8px">• Ngày <strong>${formattedDate}</strong> (${dowInfo.name})</span>
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 6px; background-color: ${brand.primary}; color: #ffffff; font-size: 12px; font-weight: 800; margin-right: 8px;">
+                  ${brand.shortCode}
+                </span>
+                <span style="font-size: 16px; font-weight: 800; color: #0f172a;">
+                  Site: ${siteName}
+                </span>
+                <span style="font-size: 12px; color: #475569; margin-left: 8px;">
+                  • Ngày <strong>${formattedDate}</strong> (${dowInfo.name})
+                </span>
               </td>
-              <td align="right" style="font-size:11px;color:#475569">
+              <td align="right" style="font-size: 11px; color: #475569;">
                 Benchmark cố định từ đầu năm: <strong>${siteRecords.length} ngày</strong> (${medianData.count} ngày ${dowInfo.name})
               </td>
             </tr>
           </table>
-          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed ${brand.border};font-size:12px;color:#334155">
-            <span style="margin-right:14px">Tổng PV: <strong style="color:#e11d48;font-family:monospace">${formatNumber(totalPV)}</strong></span>
-            <span style="margin-right:14px">Tổng User: <strong style="color:#2563eb;font-family:monospace">${formatNumber(totalUser)}</strong></span>
-            <span style="margin-right:14px">PV/User: <strong style="color:#059669;font-family:monospace">${formatRatio(totalRatio)}</strong></span>
-            <span style="margin-right:12px;color:#047857">▲ Tăng ≥+20%: <strong>${spikeCount}</strong></span>
-            <span style="color:#be123c">▼ Giảm ≤-20%: <strong>${dropCount}</strong></span>
+
+          <!-- Quick Summary Strip -->
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed ${brand.border}; font-size: 12px; color: #334155;">
+            <span style="margin-right: 16px;">Tổng PV: <strong style="color: #e11d48; font-family: monospace;">${formatNumber(totalPV)}</strong></span>
+            <span style="margin-right: 16px;">Tổng User: <strong style="color: #2563eb; font-family: monospace;">${formatNumber(totalUser)}</strong></span>
+            <span style="margin-right: 16px;">PV/User: <strong style="color: #059669; font-family: monospace;">${formatRatio(totalRatio)}</strong></span>
+            <span style="margin-right: 12px; color: #047857;">▲ Tăng bất thường (≥+20%): <strong>${spikeCount}</strong> chỉ số</span>
+            <span style="color: #be123c;">▼ Giảm bất thường (≤-20%): <strong>${dropCount}</strong> chỉ số</span>
           </div>
-          ${dropAlertHtml}
         </div>
-        <div style="overflow-x:auto">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
+
+        <!-- 16 Metric Pairs Table -->
+        <div style="overflow-x: auto;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; width: 100%;">
             <thead>
-              <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1;font-size:11px;font-weight:700;color:#334155;text-transform:uppercase">
-                <th rowspan="2" align="left" style="padding:7px 8px;border-right:1px solid #cbd5e1">Cặp Chỉ Số</th>
-                <th colspan="2" align="center" style="padding:5px 8px;color:#be123c;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Pageviews (PV)</th>
-                <th colspan="2" align="center" style="padding:5px 8px;color:#1d4ed8;border-right:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1">Users (Độc Giả)</th>
-                <th colspan="2" align="center" style="padding:5px 8px;color:#047857;border-bottom:1px solid #cbd5e1">Tỷ Lệ PV / User</th>
+              <tr style="background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1; font-size: 11px; font-weight: 700; color: #334155; text-transform: uppercase;">
+                <th rowspan="2" align="left" style="padding: 8px 10px; border-right: 1px solid #cbd5e1;">Cặp Chỉ Số</th>
+                <th colspan="2" align="center" style="padding: 6px 10px; color: #be123c; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Pageviews (PV)</th>
+                <th colspan="2" align="center" style="padding: 6px 10px; color: #1d4ed8; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Users (Độc Giả)</th>
+                <th colspan="2" align="center" style="padding: 6px 10px; color: #047857; border-bottom: 1px solid #cbd5e1;">Tỷ Lệ PV / User</th>
               </tr>
-              <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">
-                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">Lệch & Chuỗi Ngày</th>
-                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px;border-right:1px solid #cbd5e1">Lệch & Chuỗi Ngày</th>
-                <th align="right" style="padding:4px 8px">Số Thực & TV</th>
-                <th align="right" style="padding:4px 8px">Lệch & Chuỗi Ngày</th>
+              <tr style="background-color: #f8fafc; border-bottom: 2px solid #cbd5e1; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+                <th align="right" style="padding: 5px 10px;">Số Thực & TV</th>
+                <th align="right" style="padding: 5px 8px; border-right: 1px solid #cbd5e1;">% & Tuyệt Đối</th>
+                <th align="right" style="padding: 5px 10px;">Số Thực & TV</th>
+                <th align="right" style="padding: 5px 8px; border-right: 1px solid #cbd5e1;">% & Tuyệt Đối</th>
+                <th align="right" style="padding: 5px 10px;">Số Thực & TV</th>
+                <th align="right" style="padding: 5px 8px;">% & Tuyệt Đối</th>
               </tr>
             </thead>
             <tbody>
@@ -464,32 +369,51 @@ export function generateDailyEmailReport(
 
   const subject = `[Báo Cáo Hàng Ngày] Pageviews & Users (${orderedSites.join(' • ')}) - Ngày ${formattedDate} (${dowInfo.name})`;
 
-  const html = `<!DOCTYPE html>
+  const html = `
+<!DOCTYPE html>
 <html lang="vi">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${subject}</title></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a">
-  <div style="max-width:960px;margin:0 auto;padding:16px 10px">
-    <div style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:16px">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#fda4af;font-weight:700;margin-bottom:4px">BÁO CÁO TỰ ĐỘNG HÀNG NGÀY • GOOGLE SHEETS LIVE</div>
-      <h1 style="margin:0 0 6px 0;font-size:19px;font-weight:800;color:#fff">Thống Kê Chi Tiết Pageviews & Users — Ngày ${formattedDate} (${dowInfo.name})</h1>
-      <p style="margin:0;font-size:12px;color:#cbd5e1;line-height:1.5">Dữ liệu ngày mới nhất của 3 site (<strong>${orderedSites.join(', ')}</strong>) đối chiếu với <strong>Mức Trung Vị Chuẩn Theo ${dowInfo.name}</strong> (tính cố định từ đầu năm 01/01/2026). Bao gồm Số thực tế, % Lệch, Số lệch tuyệt đối và <strong>Chuỗi ngày tăng/giảm liên tiếp (LT) so với Trung vị Thứ</strong>.</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a;">
+  <div style="max-width: 960px; margin: 0 auto; padding: 20px 12px;">
+    
+    <!-- Main Email Banner -->
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #fda4af; font-weight: 700; margin-bottom: 4px;">
+        BÁO CÁO TỰ ĐỘNG HÀNG NGÀY • GOOGLE SHEETS LIVE
+      </div>
+      <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 800; color: #ffffff;">
+        Thống Kê Chi Tiết Pageviews & Users — Ngày ${formattedDate} (${dowInfo.name})
+      </h1>
+      <p style="margin: 0; font-size: 12px; color: #cbd5e1; line-height: 1.5;">
+        Dữ liệu ngày mới nhất của 3 site (<strong>${orderedSites.join(', ')}</strong>) đối chiếu với <strong>Mức Trung Vị Chuẩn Theo ${dowInfo.name}</strong> (tính cố định từ đầu năm 01/01/2026). Bao gồm Số thực tế, % Lệch và Số lệch tuyệt đối.
+      </p>
     </div>
-    <div style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:9px 14px;margin-bottom:16px;font-size:11px;color:#475569">
-      <strong style="color:#0f172a;margin-right:8px">Chú giải độ lệch & chuỗi ngày vs Trung vị Thứ:</strong>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#059669;color:#fff;font-weight:700;margin-right:6px">≥ +20% Tăng bất thường</span>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#d1fae5;color:#065f46;font-weight:600;margin-right:6px">+5% ~ +20% Tăng nhẹ</span>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#64748b;margin-right:6px">±5% Ổn định</span>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#ffe4e6;color:#9f1239;font-weight:600;margin-right:6px">-5% ~ -20% Giảm nhẹ</span>
-      <span style="display:inline-block;padding:2px 6px;border-radius:4px;background:#e11d48;color:#fff;font-weight:700;margin-right:6px">≤ -20% Giảm bất thường</span>
-      <span style="display:inline-block;padding:1px 5px;border-radius:3px;background:#ffe4e6;color:#be123c;border:1px solid #fda4af;font-weight:700">▼ Giảm X ngày LT: Giảm liên tiếp X ngày so với TV Thứ</span>
+
+    <!-- Color Legend Strip -->
+    <div style="background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 16px; margin-bottom: 20px; font-size: 11px; color: #475569;">
+      <strong style="color: #0f172a; margin-right: 8px;">Chú giải màu độ lệch vs Trung vị Thứ:</strong>
+      <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #059669; color: #ffffff; font-weight: 700; margin-right: 6px;">≥ +20% Tăng bất thường</span>
+      <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #d1fae5; color: #065f46; font-weight: 600; margin-right: 6px;">+5% ~ +20% Tăng nhẹ</span>
+      <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #f1f5f9; color: #64748b; margin-right: 6px;">±5% Ổn định</span>
+      <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #ffe4e6; color: #9f1239; font-weight: 600; margin-right: 6px;">-5% ~ -20% Giảm nhẹ</span>
+      <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #e11d48; color: #ffffff; font-weight: 700;">≤ -20% Giảm bất thường</span>
     </div>
+
+    <!-- All Site Tables -->
     ${siteSectionsHtml}
-    <div style="text-align:center;font-size:11px;color:#64748b;padding:10px 0;border-top:1px solid #cbd5e1">
+
+    <!-- Footer -->
+    <div style="text-align: center; font-size: 11px; color: #64748b; padding: 12px 0; border-top: 1px solid #cbd5e1;">
       Email được tạo tự động từ hệ thống <strong>Dashboard Thống Kê Pageviews & Users</strong> • Cập nhật lúc ${new Date().toLocaleString('vi-VN')}
     </div>
   </div>
 </body>
-</html>`.replace(/\n\s+/g, '\n').trim();
+</html>
+  `.trim();
 
   return {
     targetDate,
