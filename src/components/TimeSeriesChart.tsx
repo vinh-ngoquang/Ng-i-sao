@@ -27,7 +27,7 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
   activePairId,
   onSelectPair,
 }) => {
-  const [chartMode, setChartMode] = useState<'daily' | 'ma7' | 'cumulative'>('daily');
+  const [chartMode, setChartMode] = useState<'daily' | 'weekly'>('daily');
 
   const selectedPair = METRIC_PAIRS.find(p => p.id === activePairId) || METRIC_PAIRS[0];
   const chartData = prepareTimeSeriesData(records, selectedPair, chartMode);
@@ -48,7 +48,14 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Trục trái: <strong className="text-rose-600 font-semibold">{selectedPair.pvHeader}</strong> • Trục phải: <strong className="text-blue-600 font-semibold">{selectedPair.uHeader}</strong>
+            Trục trái:{' '}
+            <strong className="text-rose-600 font-semibold">
+              {selectedPair.pvHeader} {chartMode === 'weekly' ? '(Tổng tuần - Sum)' : '(Theo ngày)'}
+            </strong>{' '}
+            • Trục phải:{' '}
+            <strong className="text-blue-600 font-semibold">
+              {selectedPair.uHeader} {chartMode === 'weekly' ? '(TB ngày - Average)' : '(Theo ngày)'}
+            </strong>
           </p>
         </div>
 
@@ -70,35 +77,26 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             </select>
           </div>
 
-          {/* Mode switch */}
+          {/* Mode switch: Theo ngày | Theo tuần */}
           <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 text-xs">
             <button
               id="btn-mode-daily"
               onClick={() => setChartMode('daily')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
                 chartMode === 'daily' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Theo ngày
             </button>
             <button
-              id="btn-mode-ma7"
-              onClick={() => setChartMode('ma7')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                chartMode === 'ma7' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
+              id="btn-mode-weekly"
+              onClick={() => setChartMode('weekly')}
+              className={`px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                chartMode === 'weekly' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Trung bình trượt 7 ngày khử độ lệch cuối tuần"
+              title="Xem theo tuần: Pageviews tính tổng (Sum), User tính trung bình ngày (Average)"
             >
-              TB trượt 7D
-            </button>
-            <button
-              id="btn-mode-cum"
-              onClick={() => setChartMode('cumulative')}
-              className={`px-2.5 py-1 rounded-md font-medium transition-all cursor-pointer ${
-                chartMode === 'cumulative' ? 'bg-white text-slate-900 shadow-xs font-semibold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Lũy kế
+              Theo tuần
             </button>
           </div>
         </div>
@@ -149,20 +147,30 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 if (active && payload && payload.length && payload[0]?.payload) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl text-xs space-y-1.5 border border-slate-700 min-w-48">
-                      <p className="font-semibold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between">
-                        <span>Ngày: {data.date ? formatDateVN(data.date) : ''}</span>
-                        {chartMode === 'ma7' && <span className="text-[10px] text-amber-400 font-normal">TB 7 Ngày</span>}
+                    <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl text-xs space-y-1.5 border border-slate-700 min-w-56">
+                      <p className="font-semibold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between gap-2">
+                        {chartMode === 'weekly' ? (
+                          <>
+                            <span>
+                              Tuần: {data.date ? formatDateVN(data.date) : ''} - {data.endDate ? formatDateVN(data.endDate) : ''}
+                            </span>
+                            <span className="text-[10px] text-amber-400 font-normal shrink-0">
+                              ({data.daysCount || 0} ngày)
+                            </span>
+                          </>
+                        ) : (
+                          <span>Ngày: {data.date ? formatDateVN(data.date) : ''}</span>
+                        )}
                       </p>
-                      <div className="flex items-center justify-between text-rose-300">
-                        <span>{selectedPair.pvHeader}:</span>
+                      <div className="flex items-center justify-between text-rose-300 gap-4">
+                        <span>{selectedPair.pvHeader} {chartMode === 'weekly' ? '(Sum tuần)' : ''}:</span>
                         <span className="font-mono font-bold text-white">{formatNumber(data.pageviews || 0)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-blue-300">
-                        <span>{selectedPair.uHeader}:</span>
+                      <div className="flex items-center justify-between text-blue-300 gap-4">
+                        <span>{selectedPair.uHeader} {chartMode === 'weekly' ? '(Avg ngày)' : ''}:</span>
                         <span className="font-mono font-bold text-white">{formatNumber(data.user || 0)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-violet-300 pt-1 border-t border-slate-800">
+                      <div className="flex items-center justify-between text-violet-300 pt-1 border-t border-slate-800 gap-4">
                         <span>Tỷ lệ PV/User:</span>
                         <span className="font-mono font-bold text-emerald-400">{formatRatio(data.ratio || 0)}</span>
                       </div>
@@ -176,8 +184,20 @@ export const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
               verticalAlign="top"
               height={32}
               formatter={(val) => {
-                if (val === 'pageviews') return <span className="text-xs font-semibold text-rose-600">{selectedPair.pvHeader} (Trục trái)</span>;
-                if (val === 'user') return <span className="text-xs font-semibold text-blue-600">{selectedPair.uHeader} (Trục phải)</span>;
+                if (val === 'pageviews') {
+                  return (
+                    <span className="text-xs font-semibold text-rose-600">
+                      {selectedPair.pvHeader} {chartMode === 'weekly' ? '(Tổng tuần - Trục trái)' : '(Trục trái)'}
+                    </span>
+                  );
+                }
+                if (val === 'user') {
+                  return (
+                    <span className="text-xs font-semibold text-blue-600">
+                      {selectedPair.uHeader} {chartMode === 'weekly' ? '(TB ngày - Trục phải)' : '(Trục phải)'}
+                    </span>
+                  );
+                }
                 return val;
               }}
             />

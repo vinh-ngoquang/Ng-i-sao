@@ -306,48 +306,102 @@ export function computeOverallSummary(records: NgoiSaoRecord[]) {
   };
 }
 
+export function getMondayOfWeek(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dateObj = new Date(y, (m || 1) - 1, d || 1);
+  const day = dateObj.getDay(); // 0 (Sun) to 6 (Sat)
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  dateObj.setDate(dateObj.getDate() + diffToMonday);
+  const yy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const dd = String(dateObj.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 export function prepareTimeSeriesData(
   records: NgoiSaoRecord[],
   selectedPair: MetricPairDefinition,
-  mode: 'daily' | 'ma7' | 'cumulative'
+  mode: 'daily' | 'weekly'
 ) {
   if (!records || records.length === 0) return [];
 
-  let cumPV = 0;
-  let cumUser = 0;
+  if (mode === 'weekly') {
+    const weekMap = new Map<
+      string,
+      {
+        weekStart: string;
+        startDate: string;
+        endDate: string;
+        sumPV: number;
+        sumUser: number;
+        daysCount: number;
+      }
+    >();
 
-  return records.map((r, idx) => {
+    records.forEach((r) => {
+      const pv = Number(r[selectedPair.pvKey]) || 0;
+      const u = Number(r[selectedPair.uKey]) || 0;
+      const weekKey = getMondayOfWeek(r.date_day);
+
+      const existing = weekMap.get(weekKey);
+      if (!existing) {
+        weekMap.set(weekKey, {
+          weekStart: weekKey,
+          startDate: r.date_day,
+          endDate: r.date_day,
+          sumPV: pv,
+          sumUser: u,
+          daysCount: 1,
+        });
+      } else {
+        if (r.date_day < existing.startDate) existing.startDate = r.date_day;
+        if (r.date_day > existing.endDate) existing.endDate = r.date_day;
+        existing.sumPV += pv;
+        existing.sumUser += u;
+        existing.daysCount += 1;
+      }
+    });
+
+    return Array.from(weekMap.values())
+      .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+      .map((w) => {
+        const totalPV = w.sumPV;
+        const avgUser = w.daysCount > 0 ? Math.round(w.sumUser / w.daysCount) : 0;
+        const avgPV = w.daysCount > 0 ? Math.round(w.sumPV / w.daysCount) : 0;
+        const ratio = w.sumUser > 0 ? Number((w.sumPV / w.sumUser).toFixed(2)) : 0;
+
+        return {
+          date: w.startDate,
+          endDate: w.endDate,
+          weekStart: w.weekStart,
+          daysCount: w.daysCount,
+          displayDate: w.startDate.slice(5),
+          pageviews: totalPV, // Weekly PV = SUM
+          user: avgUser,      // Weekly User = AVERAGE
+          avgPV,
+          sumUser: w.sumUser,
+          rawPV: totalPV,
+          rawUser: avgUser,
+          ratio,
+        };
+      });
+  }
+
+  return records.map((r) => {
     const pv = Number(r[selectedPair.pvKey]) || 0;
     const u = Number(r[selectedPair.uKey]) || 0;
-    cumPV += pv;
-    cumUser += u;
-
-    let chartPV = pv;
-    let chartUser = u;
-
-    if (mode === 'cumulative') {
-      chartPV = cumPV;
-      chartUser = cumUser;
-    } else if (mode === 'ma7') {
-      // 7-day moving average
-      const startIdx = Math.max(0, idx - 6);
-      const window = records.slice(startIdx, idx + 1);
-      const windowSumPV = window.reduce((s, w) => s + (Number(w[selectedPair.pvKey]) || 0), 0);
-      const windowSumU = window.reduce((s, w) => s + (Number(w[selectedPair.uKey]) || 0), 0);
-      chartPV = Math.round(windowSumPV / window.length);
-      chartUser = Math.round(windowSumU / window.length);
-    }
-
-    const ratio = chartUser > 0 ? Number((chartPV / chartUser).toFixed(2)) : 0;
+    const ratio = u > 0 ? Number((pv / u).toFixed(2)) : 0;
 
     return {
       date: r.date_day,
+      endDate: r.date_day,
+      daysCount: 1,
       displayDate: r.date_day.slice(5), // MM-DD
-      pageviews: chartPV,
-      user: chartUser,
+      pageviews: pv,
+      user: u,
       rawPV: pv,
       rawUser: u,
-      ratio
+      ratio,
     };
   });
 }
