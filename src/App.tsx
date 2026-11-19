@@ -15,12 +15,12 @@ import { fetchLiveGoogleSheetsData, parseTsvToRecords } from './utils/googleShee
 export default function App() {
   // Preloaded with bundled records for guaranteed immediate render
   const [records, setRecords] = useState<NgoiSaoRecord[]>(() => {
-    // Check localStorage cache first, otherwise use pre-bundled INITIAL_RECORDS
+    // Check localStorage cache first, only use if it has >= records than bundled INITIAL_RECORDS
     try {
       const cached = localStorage.getItem('ngoisao_records_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_RECORDS.length) {
           return parsed;
         }
       }
@@ -73,12 +73,12 @@ export default function App() {
   }, []);
 
   const syncDataQuietly = async () => {
-    // First attempt: fetch from local express API if available
+    // First attempt: fetch from backend/Vercel API with refresh=true
     try {
-      const res = await fetch('/api/data');
+      const res = await fetch(`/api/data?refresh=true&_t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        if (json.records && json.records.length > 0) {
+        if (json.records && Array.isArray(json.records) && json.records.length > 0) {
           setRecords(json.records);
           const time = json.lastSyncTime || new Date().toISOString();
           setLastSyncTime(time);
@@ -116,23 +116,24 @@ export default function App() {
   const handleManualSync = async () => {
     setIsSyncing(true);
     let success = false;
-    let fetchedRecordsCount = 0;
-    let latestDate = '';
-    const previousCount = records.length;
+    let fetchedRecords: NgoiSaoRecord[] = [];
+    const previousDatesCount = new Set(records.map((r) => r.date_day)).size;
 
-    // 1. Try backend sync first
+    // 1. Try backend/Vercel API /api/sync first
     try {
-      const res = await fetch('/api/sync', { method: 'POST' });
+      const res = await fetch(`/api/sync?_t=${Date.now()}`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.records && Array.isArray(json.records) && json.records.length > 0) {
-          setRecords(json.records);
+          fetchedRecords = json.records;
           const time = json.lastSyncTime || new Date().toISOString();
+          setRecords(fetchedRecords);
           setLastSyncTime(time);
-          fetchedRecordsCount = json.records.length;
-          latestDate = json.records[json.records.length - 1]?.date_day || '';
           try {
-            localStorage.setItem('ngoisao_records_cache', JSON.stringify(json.records));
+            localStorage.setItem('ngoisao_records_cache', JSON.stringify(fetchedRecords));
             localStorage.setItem('ngoisao_last_sync', time);
           } catch {
             // ignore
@@ -141,23 +142,22 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.warn('Backend sync failed, trying fallback:', err);
+      console.warn('Backend /api/sync failed, trying fallback:', err);
     }
 
     // 2. Try GET /api/data?refresh=true as secondary backend option
     if (!success) {
       try {
-        const res = await fetch('/api/data?refresh=true');
+        const res = await fetch(`/api/data?refresh=true&_t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           if (json.records && Array.isArray(json.records) && json.records.length > 0) {
-            setRecords(json.records);
+            fetchedRecords = json.records;
             const time = json.lastSyncTime || new Date().toISOString();
+            setRecords(fetchedRecords);
             setLastSyncTime(time);
-            fetchedRecordsCount = json.records.length;
-            latestDate = json.records[json.records.length - 1]?.date_day || '';
             try {
-              localStorage.setItem('ngoisao_records_cache', JSON.stringify(json.records));
+              localStorage.setItem('ngoisao_records_cache', JSON.stringify(fetchedRecords));
               localStorage.setItem('ngoisao_last_sync', time);
             } catch {
               // ignore
@@ -170,17 +170,16 @@ export default function App() {
       }
     }
 
-    // 3. Fallback: direct Google Sheets TSV fetch
+    // 3. Fallback: direct Google Sheets TSV fetch (with CORS fallback)
     if (!success) {
       try {
         const live = await fetchLiveGoogleSheetsData();
         if (live.records && live.records.length > 0) {
-          setRecords(live.records);
+          fetchedRecords = live.records;
+          setRecords(fetchedRecords);
           setLastSyncTime(live.lastSync);
-          fetchedRecordsCount = live.records.length;
-          latestDate = live.records[live.records.length - 1]?.date_day || '';
           try {
-            localStorage.setItem('ngoisao_records_cache', JSON.stringify(live.records));
+            localStorage.setItem('ngoisao_records_cache', JSON.stringify(fetchedRecords));
             localStorage.setItem('ngoisao_last_sync', live.lastSync);
           } catch {
             // ignore
@@ -192,14 +191,24 @@ export default function App() {
       }
     }
 
-    if (success) {
-      if (fetchedRecordsCount > previousCount) {
-        triggerToast(`Đồng bộ thành công! Đã thêm ${fetchedRecordsCount - previousCount} ngày mới (Tổng ${fetchedRecordsCount} ngày, mới nhất đến ${formatDateVN(latestDate)}).`, 'success');
+    if (success && fetchedRecords.length > 0) {
+      const sortedDates = Array.from(new Set(fetchedRecords.map((r) => r.date_day))).sort();
+      const latestDate = sortedDates[sortedDates.length - 1] || '';
+      const newDatesCount = sortedDates.length;
+
+      if (newDatesCount > previousDatesCount) {
+        triggerToast(
+          `Đồng bộ thành công! Đã thêm ${newDatesCount - previousDatesCount} ngày mới (Tổng ${newDatesCount} ngày/site, mới nhất đến ${formatDateVN(latestDate)}).`,
+          'success'
+        );
       } else {
-        triggerToast(`Đã đồng bộ Google Sheets: Hiện có ${fetchedRecordsCount} ngày (mới nhất đến ${formatDateVN(latestDate)}). Chưa có ngày mới trên link xuất bản.`, 'success');
+        triggerToast(
+          `Đã đồng bộ Google Sheets: Hiện có ${newDatesCount} ngày/site (${fetchedRecords.length} dòng, mới nhất đến ${formatDateVN(latestDate)}).`,
+          'success'
+        );
       }
     } else {
-      triggerToast('Đang hiển thị bản dữ liệu đã lưu trữ.', 'success');
+      triggerToast('Không thể kết nối Google Sheets, đang hiển thị bản dữ liệu đã lưu trữ.', 'error');
     }
 
     setIsSyncing(false);

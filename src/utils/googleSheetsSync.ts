@@ -143,24 +143,35 @@ export function generateMarkdownContent(records: NgoiSaoRecord[], lastSyncIso?: 
 }
 
 export async function fetchLiveGoogleSheetsData(): Promise<{ records: NgoiSaoRecord[]; lastSync: string }> {
-  // Do not send custom headers like 'Cache-Control' in the browser to avoid CORS preflight failures on docs.google.com.
-  // Instead, use query param _t for cache-busting:
   const separator = GOOGLE_SHEETS_TSV_URL.includes('?') ? '&' : '?';
-  const url = `${GOOGLE_SHEETS_TSV_URL}${separator}_t=${Date.now()}`;
-  const res = await fetch(url);
+  const targetUrl = `${GOOGLE_SHEETS_TSV_URL}${separator}_t=${Date.now()}`;
 
-  if (!res.ok) {
-    throw new Error(`Google Sheets fetch failed with status: ${res.status}`);
+  const candidateUrls = [
+    targetUrl,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+  ];
+
+  let lastError: any = null;
+
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`HTTP status ${res.status}`);
+      }
+      const text = await res.text();
+      const { records } = parseTsvToRecords(text);
+      if (records.length > 0) {
+        return {
+          records,
+          lastSync: new Date().toISOString(),
+        };
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const text = await res.text();
-  const { records } = parseTsvToRecords(text);
-  if (records.length === 0) {
-    throw new Error('No records found in Google Sheets TSV');
-  }
-
-  return {
-    records,
-    lastSync: new Date().toISOString(),
-  };
+  throw lastError || new Error('No records found in Google Sheets TSV');
 }
